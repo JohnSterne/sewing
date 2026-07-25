@@ -92,6 +92,11 @@
   .grid.cols-3{ grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
   .grid.cols-4{ grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); }
 
+  .materials-columns{ display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+  .materials-columns .materials-tobuy{ flex:1 1 320px; min-width:280px; }
+  .materials-columns .materials-stash{ flex:2 1 480px; min-width:320px; }
+  .table-scroll{ overflow-x:auto; }
+
   .stat{
     background:var(--paper);
     border:1px solid var(--line);
@@ -513,19 +518,23 @@
 
   <!-- MATERIALS -->
   <section class="tab" id="tab-materials">
-    <div class="card">
-      <h2>Net material to buy</h2>
-      <p style="color:var(--muted); font-size:13px; margin-top:-6px;">Fabric needed across all active projects (quantity × yardage per piece), minus what's already allocated from stash — so you can combine orders and buy in bulk.</p>
-      <div id="shoppingList"></div>
-    </div>
-    <div class="card">
-      <div class="toolbar" style="justify-content:space-between;">
-        <h2 style="margin:0;">Fabric stash</h2>
-        <button class="btn" onclick="openModal('fabric')">+ Add fabric</button>
+    <div class="materials-columns">
+      <div class="card materials-tobuy">
+        <h2>Net material to buy</h2>
+        <p style="color:var(--muted); font-size:13px; margin-top:-6px;">Fabric needed across all active projects (quantity × yardage per piece), minus what's already allocated from stash — so you can combine orders and buy in bulk.</p>
+        <div id="shoppingList"></div>
       </div>
-      <table id="fabricTable"><thead><tr>
-        <th>Photo</th><th>Name</th><th>Type</th><th>Details</th><th>Color</th><th>Yardage</th><th>Status</th><th>Linked project</th><th></th>
-      </tr></thead><tbody></tbody></table>
+      <div class="card materials-stash">
+        <div class="toolbar" style="justify-content:space-between;">
+          <h2 style="margin:0;">Fabric stash</h2>
+          <button class="btn" onclick="openModal('fabric')">+ Add fabric</button>
+        </div>
+        <div class="table-scroll">
+          <table id="fabricTable"><thead><tr>
+            <th>Photo</th><th>Name</th><th>Type</th><th>Details</th><th>Color</th><th>Yardage</th><th>Status</th><th>Linked project</th><th></th>
+          </tr></thead><tbody></tbody></table>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1217,6 +1226,7 @@ function renderProjects(){
           <b>${esc(p.name)}</b>
           <div class="meta">${esc(p.category||'')}${p.season? ' · '+esc(p.season):''}</div>
           ${p.targetDate ? `<div class="meta">Due ${esc(p.targetDate)}</div>` : ''}
+          ${st!=='Done' ? `<button class="btn small" style="margin-top:6px; width:100%;" onclick="markProjectDone('${p.id}', event)">✓ Mark done</button>` : ''}
         </div>`).join('') || `<div style="font-size:11px; color:var(--muted); padding:6px;">—</div>`}
     </div>`;
   }).join('');
@@ -1338,7 +1348,8 @@ function renderQueue(){
         </div>
       </div>
       <div style="text-align:right;">
-        <div style="font-weight:700; color:var(--sage-dark);">${label}</div>
+        <div style="font-weight:700; color:var(--sage-dark); margin-bottom:6px;">${label}</div>
+        <button class="btn small" onclick="markProjectDone('${p.id}')">✓ Mark done</button>
         <button class="icon-btn" onclick="openModal('project','${p.id}')">Edit</button>
       </div>
     </div>`;
@@ -1594,6 +1605,18 @@ function saveModal(){
 function deleteItem(store, id){
   if(!confirm('Delete this item?')) return;
   DATA[store] = DATA[store].filter(x=>x.id!==id);
+  save();
+  renderAll();
+}
+
+// Quick one-click way to finish a project from the Queue or Projects board, without opening
+// the full edit modal. evt is optional — passed when the button sits inside a clickable card
+// (the Projects kanban) so the click doesn't also trigger the card's own onclick.
+function markProjectDone(id, evt){
+  if(evt) evt.stopPropagation();
+  const p = DATA.projects.find(x=>x.id===id);
+  if(!p) return;
+  p.status = 'Done';
   save();
   renderAll();
 }
