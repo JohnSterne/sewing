@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Seasonal Sewing Studio</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root{
     /* Palette pulled from the current Pantone NYFW Fall 2026 trend report + Cloud Dancer (Pantone Color of the Year) */
@@ -324,13 +325,69 @@
     position:absolute; top:10px; left:10px; background:rgba(255,255,255,0.92); color:var(--sage-dark);
     font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; padding:4px 10px; border-radius:999px;
   }
+
+  /* ---------- Auth screen ---------- */
+  #authScreen{
+    position:fixed; inset:0; background:linear-gradient(135deg, var(--sage-dark), var(--sage));
+    display:flex; align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  #authScreen.hidden{ display:none; }
+  .auth-card{
+    background:#fff; border-radius:var(--radius); box-shadow:0 10px 40px rgba(0,0,0,0.25);
+    padding:32px; width:100%; max-width:380px;
+  }
+  .auth-card h1{ font-size:20px; margin:0 0 4px; }
+  .auth-card p.sub{ margin:0 0 20px; font-size:13px; color:var(--muted); }
+  .auth-card .field{ margin-bottom:14px; }
+  .auth-card input[type=email], .auth-card input[type=password]{
+    width:100%; padding:10px 12px; font-size:14px;
+  }
+  .auth-actions{ display:flex; gap:8px; margin-top:6px; }
+  .auth-actions .btn{ flex:1; }
+  .auth-error{ color:var(--danger); font-size:12.5px; margin-top:10px; min-height:16px; }
+  .auth-toggle{ text-align:center; font-size:12.5px; color:var(--muted); margin-top:14px; }
+  .auth-toggle a{ color:var(--sage-dark); font-weight:600; cursor:pointer; text-decoration:underline; }
+  .user-bar{ display:flex; align-items:center; gap:10px; font-size:12.5px; opacity:0.9; }
+  .user-bar button{
+    background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.4); color:#fff;
+    border-radius:999px; padding:5px 12px; font-size:12px; cursor:pointer;
+  }
+  .user-bar button:hover{ background:rgba(255,255,255,0.3); }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>🧵 Seasonal Sewing Studio</h1>
-  <p>Plan your wardrobe, track your makes, manage your stash — and find your next inspiration.</p>
+<div id="authScreen">
+  <div class="auth-card">
+    <h1>🧵 Seasonal Sewing Studio</h1>
+    <p class="sub" id="authSub">Log in to your wardrobe planner.</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="authEmail" autocomplete="username" placeholder="you@example.com">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="authPassword" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <div class="auth-actions">
+      <button class="btn" id="authSubmitBtn" onclick="authSubmit()">Log in</button>
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <div class="auth-toggle" id="authToggle">
+      New here? <a onclick="authSetMode('signup')">Create an account</a>
+    </div>
+  </div>
+</div>
+
+<header style="display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap;">
+  <div>
+    <h1>🧵 Seasonal Sewing Studio</h1>
+    <p>Plan your wardrobe, track your makes, manage your stash — and find your next inspiration.</p>
+  </div>
+  <div class="user-bar">
+    <span id="userEmailLabel"></span>
+    <button onclick="authLogOut()">Log out</button>
+  </div>
 </header>
 
 <nav id="tabNav"></nav>
@@ -505,7 +562,7 @@
 </main>
 
 <footer>
-  Data is saved locally in this browser (nothing is uploaded).
+  Data is synced to your account and available on any device you log in on.
   <button class="btn secondary small" onclick="exportData()">Export backup</button>
   <label class="btn secondary small" style="cursor:pointer;">Import / merge JSON<input type="file" accept=".json" onchange="importData(event)" style="display:none;"></label>
   <button class="btn secondary small" onclick="loadDemoData()">Load sample demo data</button>
@@ -523,27 +580,119 @@ const STATUSES = ['Idea','Planned','Cutting','Sewing','Finishing','On Hold','Don
 const FABRIC_STATUS = ['Stash','Allocated','Used'];
 const INSP_CATEGORIES = ['Color Palette','Print / Pattern','Silhouette / Design','Other'];
 
-const STORE_KEY = 'seasonalSewingStudioData';
+const STORE_KEY = 'seasonalSewingStudioData'; // offline cache mirror only — Supabase is the source of truth
 
 function defaultData(){
   return { goals: [], projects: [], fabrics: [], patterns: [], inspiration: [] };
 }
 
-let FIRST_VISIT = false;
-let DATA = load();
+/* ---------- Supabase auth + persistence ---------- */
+const SUPABASE_URL = 'https://mwdxbnrxcssbcggkuyqy.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_s2PhTRGglmEh80sHv4cuhA_nnD4l2dz';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function load(){
+let DATA = defaultData();
+let currentUserId = null;
+let authMode = 'login';
+
+function cacheLocally(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(DATA)); }catch(e){}
+}
+function loadLocalCache(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
     if(raw) return Object.assign(defaultData(), JSON.parse(raw));
   }catch(e){}
-  FIRST_VISIT = true;
-  return defaultData();
+  return null;
 }
+
+let saveTimer = null;
 function save(){
-  localStorage.setItem(STORE_KEY, JSON.stringify(DATA));
+  cacheLocally();
+  if(!currentUserId) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    sb.from('app_data').upsert({ user_id: currentUserId, data: DATA, updated_at: new Date().toISOString() })
+      .then(({error})=>{ if(error) console.error('Supabase save failed:', error.message); });
+  }, 400);
 }
+
 function uid(){ return 'id'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+
+/* ---------- Auth screen ---------- */
+function authSetMode(mode){
+  authMode = mode;
+  document.getElementById('authSub').textContent = mode==='signup'
+    ? 'Create an account for your wardrobe planner.'
+    : 'Log in to your wardrobe planner.';
+  document.getElementById('authSubmitBtn').textContent = mode==='signup' ? 'Create account' : 'Log in';
+  document.getElementById('authToggle').innerHTML = mode==='signup'
+    ? 'Already have an account? <a onclick="authSetMode(\'login\')">Log in</a>'
+    : 'New here? <a onclick="authSetMode(\'signup\')">Create an account</a>';
+  const errEl = document.getElementById('authError');
+  errEl.textContent = '';
+  errEl.style.color = 'var(--danger)';
+}
+async function authSubmit(){
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  errEl.style.color = 'var(--danger)';
+  errEl.textContent = '';
+  if(!email || !password){ errEl.textContent = 'Enter an email and password.'; return; }
+  const btn = document.getElementById('authSubmitBtn');
+  btn.disabled = true;
+  try{
+    const { data, error } = authMode==='signup'
+      ? await sb.auth.signUp({ email, password })
+      : await sb.auth.signInWithPassword({ email, password });
+    if(error){ errEl.textContent = error.message; return; }
+    if(authMode==='signup' && data.user && !data.session){
+      errEl.style.color = 'var(--sage-dark)';
+      errEl.textContent = 'Account created — check your email to confirm, then log in.';
+      authSetMode('login');
+    }
+    // sb.auth.onAuthStateChange (below) takes it from here once a session exists
+  }catch(e){
+    errEl.textContent = 'Something went wrong. Try again.';
+  }finally{
+    btn.disabled = false;
+  }
+}
+async function authLogOut(){
+  await sb.auth.signOut();
+}
+function showAuthScreen(){
+  currentUserId = null;
+  document.getElementById('authScreen').classList.remove('hidden');
+}
+async function onAuthed(session){
+  currentUserId = session.user.id;
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('userEmailLabel').textContent = session.user.email;
+
+  try{
+    const { data: row, error } = await sb.from('app_data').select('data').eq('user_id', currentUserId).maybeSingle();
+    if(error) throw error;
+    if(row && row.data){
+      DATA = Object.assign(defaultData(), row.data);
+    }else{
+      // First time this account has logged in — seed demo data and create its row.
+      DATA = demoData();
+      await sb.from('app_data').upsert({ user_id: currentUserId, data: DATA, updated_at: new Date().toISOString() });
+    }
+  }catch(e){
+    console.error('Could not reach Supabase, falling back to local cache:', e.message);
+    DATA = loadLocalCache() || demoData();
+  }
+  cacheLocally();
+  buildNav();
+  showTab('moodboard');
+}
+sb.auth.onAuthStateChange((event, session)=>{
+  if(session){ onAuthed(session); }
+  else{ showAuthScreen(); }
+});
 
 /* ---------- Demo data (realistic sample content for trying the app out) ---------- */
 function demoData(){
@@ -1413,15 +1562,10 @@ function importData(evt){
 }
 
 /* ---------- Init ---------- */
-// Seed demo data whenever there's genuinely nothing yet — covers both a true first visit
-// AND an earlier session that saved an empty data object before demo content existed.
-const isCompletelyEmpty = !DATA.goals.length && !DATA.projects.length && !DATA.fabrics.length && !DATA.patterns.length && !DATA.inspiration.length;
-if(FIRST_VISIT || isCompletelyEmpty){
-  DATA = demoData();
-  save();
-}
-buildNav();
-showTab('moodboard');
+// buildNav()/showTab() now run from onAuthed() once we know who's logged in and have
+// pulled their data from Supabase. sb.auth.onAuthStateChange (registered above) fires
+// immediately with the current session on load (Supabase v2), then again on any change —
+// so no separate getSession() call is needed here.
 </script>
 
 </body>
