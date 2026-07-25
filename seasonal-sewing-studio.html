@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seasonal Sewing Studio</title>
+<style>
+  :root{
+    /* Palette pulled from the current Pantone NYFW Fall 2026 trend report + Cloud Dancer (Pantone Color of the Year) */
+    --cream:#F4EFE7;        /* Cloud Dancer-adjacent warm white */
+    --paper:#ffffff;
+    --ink:#332622;          /* near Red Mahogany, used for body text */
+    --muted:#8a7a72;
+    --sage:#2E6E68;         /* Neptune Green — primary accent */
+    --sage-dark:#1F4F4A;    /* deeper Neptune Green */
+    --terracotta:#8C3A44;   /* Arabian Spice — secondary accent */
+    --blush:#CBA3C5;        /* Foxglove */
+    --line:#E4D9C8;
+    --amber:#E7C468;        /* Acacia */
+    --danger:#6B2C28;       /* Red Mahogany */
+    --fuchsia:#C6318D;      /* Festival Fuchsia */
+    --shadow: 0 2px 10px rgba(51,38,34,0.08);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+  }
+  header{
+    background:linear-gradient(135deg, var(--sage-dark), var(--sage));
+    color:#fff;
+    padding:28px 32px 20px;
+  }
+  header h1{
+    margin:0 0 4px;
+    font-size:26px;
+    font-weight:700;
+    letter-spacing:0.3px;
+  }
+  header p{
+    margin:0;
+    opacity:0.9;
+    font-size:14px;
+  }
+  nav{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    background:var(--paper);
+    padding:10px 24px;
+    border-bottom:1px solid var(--line);
+    position:sticky;
+    top:0;
+    z-index:20;
+  }
+  nav button{
+    border:none;
+    background:transparent;
+    padding:10px 16px;
+    font-size:14px;
+    font-weight:600;
+    color:var(--muted);
+    cursor:pointer;
+    border-radius:999px;
+    transition:all .15s ease;
+  }
+  nav button:hover{ background:var(--cream); color:var(--ink); }
+  nav button.active{ background:var(--sage); color:#fff; }
+
+  main{ max-width:1180px; margin:0 auto; padding:24px; }
+  .tab{ display:none; }
+  .tab.active{ display:block; animation:fade .2s ease; }
+  @keyframes fade{ from{opacity:0;} to{opacity:1;} }
+
+  .card{
+    background:var(--paper);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:20px;
+    margin-bottom:18px;
+    border:1px solid var(--line);
+  }
+  .card h2{ margin-top:0; font-size:18px; }
+  .card h3{ font-size:15px; margin:0 0 10px; color:var(--sage-dark);}
+
+  .grid{ display:grid; gap:16px; }
+  .grid.cols-2{ grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); }
+  .grid.cols-3{ grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+  .grid.cols-4{ grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); }
+
+  .stat{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px;
+    text-align:center;
+  }
+  .stat .num{ font-size:28px; font-weight:700; color:var(--sage-dark); }
+  .stat .label{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-top:4px;}
+
+  .toolbar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:14px; }
+  select, input[type=text], input[type=number], input[type=date], textarea{
+    font-family:inherit;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:13px;
+    background:#fff;
+    color:var(--ink);
+  }
+  textarea{ width:100%; resize:vertical; min-height:60px; }
+  label{ font-size:12px; font-weight:600; color:var(--muted); display:block; margin-bottom:4px; }
+  .field{ margin-bottom:12px; }
+
+  .btn{
+    border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:600;
+    cursor:pointer; background:var(--sage); color:#fff; transition:background .15s;
+  }
+  .btn:hover{ background:var(--sage-dark); }
+  .btn.secondary{ background:var(--paper); color:var(--ink); border:1px solid var(--line); }
+  .btn.secondary:hover{ background:var(--cream); }
+  .btn.danger{ background:#fff; color:var(--danger); border:1px solid var(--danger); }
+  .btn.danger:hover{ background:var(--danger); color:#fff; }
+  .btn.small{ padding:5px 10px; font-size:12px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th, td{ text-align:left; padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:top;}
+  th{ color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.4px; }
+  tr:hover td{ background:var(--cream); }
+
+  .badge{
+    display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.3px;
+  }
+  .badge.Idea{ background:#eee; color:#777; }
+  .badge.Planned{ background:#e1eceb; color:#1F4F4A; }
+  .badge.Cutting{ background:#f6e9c9; color:#8a6c1f; }
+  .badge.Sewing{ background:#f3ddc3; color:#a15a1e; }
+  .badge.Finishing{ background:#ecdcea; color:#8C3A44; }
+  .badge.OnHold{ background:#f5dbe6; color:#a13d6c; }
+  .badge.Done{ background:#dcece9; color:#1F4F4A; }
+
+  .season-tag{
+    display:inline-block; padding:2px 9px; border-radius:6px; font-size:11px; font-weight:600;
+    background:var(--cream); color:var(--sage-dark); border:1px solid var(--line);
+  }
+
+  .kanban{ display:grid; grid-template-columns:repeat(7,minmax(150px,1fr)); gap:10px; overflow-x:auto; }
+  .kcol{ background:var(--cream); border-radius:10px; padding:8px; min-height:80px;}
+  .kcol h4{ font-size:12px; text-transform:uppercase; color:var(--muted); margin:2px 4px 8px; }
+  .kcard{
+    background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:8px;
+    font-size:12.5px; cursor:pointer; box-shadow:var(--shadow);
+  }
+  .kcard b{ display:block; margin-bottom:3px; }
+  .kcard .meta{ color:var(--muted); font-size:11px; }
+
+  .swatch-row{ display:flex; align-items:center; gap:10px; }
+  .swatch{ width:34px; height:34px; border-radius:8px; border:1px solid rgba(0,0,0,0.08); flex-shrink:0;}
+  .palette-card{ border:1px solid var(--line); border-radius:12px; padding:14px; background:#fff; }
+  .palette-card .name{ font-weight:700; font-size:14px; }
+  .palette-card .desc{ font-size:12.5px; color:var(--muted); margin-top:4px; }
+  .palette-card .hex{ font-size:11px; color:var(--muted); font-family:monospace; }
+
+  .trend-block{ border-left:3px solid var(--terracotta); padding-left:14px; margin-bottom:16px; }
+  .trend-block h4{ margin:0 0 4px; font-size:14.5px; }
+  .trend-block p{ margin:0; font-size:13px; color:#5a5348; line-height:1.5; }
+
+  .empty{ text-align:center; padding:40px 20px; color:var(--muted); }
+  .empty .icon{ font-size:36px; margin-bottom:8px; }
+
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(58,51,44,0.45);
+    align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .modal-overlay.active{ display:flex; }
+  .modal{
+    background:#fff; border-radius:16px; padding:24px; max-width:480px; width:100%;
+    max-height:88vh; overflow-y:auto; box-shadow:0 10px 40px rgba(0,0,0,0.25);
+  }
+  .modal.wide{ max-width:640px; }
+  .modal h3{ margin-top:0; }
+  .modal-actions{ display:flex; justify-content:space-between; margin-top:18px; gap:8px; }
+  .modal-actions .right{ display:flex; gap:8px; }
+
+  .clickable{ cursor:pointer; transition:background .12s; }
+  .clickable:hover{ background:var(--cream); }
+
+  .check-row{
+    display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--line);
+    border-radius:10px; margin-bottom:8px; background:#fff; cursor:pointer; transition:background .12s;
+  }
+  .check-row:hover{ background:var(--cream); }
+  .check-row input[type=checkbox]{ width:18px; height:18px; accent-color:var(--sage); flex-shrink:0; cursor:pointer; }
+  .check-row .check-label{ flex:1; font-size:14px; }
+  .check-row.done .check-label{ text-decoration:line-through; color:var(--muted); }
+
+  .notion-row{
+    display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid var(--line);
+    border-radius:8px; margin-bottom:6px; background:#fff; font-size:13px;
+  }
+  .notion-row input[type=checkbox]{ width:16px; height:16px; accent-color:var(--sage); cursor:pointer; }
+  .notion-row .notion-name{ flex:1; }
+  .notion-row.done .notion-name{ text-decoration:line-through; color:var(--muted); }
+  .notion-add-row{ display:flex; gap:6px; margin-top:8px; }
+  .notion-add-row input[type=text]{ flex:1; }
+  .notion-add-row input[type=number]{ width:64px; }
+
+  .detail-progress-wrap{ display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .detail-progress-wrap .progress-bar{ flex:1; }
+  .detail-section-title{ font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--sage-dark); margin:18px 0 8px; }
+
+  .queue-item{
+    display:flex; justify-content:space-between; align-items:center; padding:12px 14px;
+    border:1px solid var(--line); border-radius:10px; margin-bottom:8px; background:#fff;
+  }
+  .queue-item .urgency{ width:8px; height:36px; border-radius:4px; margin-right:12px; flex-shrink:0;}
+  .queue-item .content{ display:flex; align-items:center; flex:1; }
+  .urgency.overdue{ background:#c1704f; }
+  .urgency.soon{ background:var(--amber); }
+  .urgency.ok{ background:var(--sage); }
+  .urgency.none{ background:var(--line); }
+
+  .progress-bar{ background:var(--line); border-radius:999px; height:8px; overflow:hidden; margin-top:6px;}
+  .progress-bar .fill{ height:100%; background:var(--sage); }
+
+  footer{ text-align:center; padding:30px; color:var(--muted); font-size:12px; }
+  footer a{ color:var(--sage-dark); }
+
+  .icon-btn{ background:none; border:none; cursor:pointer; font-size:14px; color:var(--muted); padding:2px 6px;}
+  .icon-btn:hover{ color:var(--ink); }
+
+  /* ---- Mood Board (Instagram-style landing feed) ---- */
+  .mood-hero{ padding:4px 4px 14px; }
+  .mood-hero h2{ margin:0 0 2px; font-size:19px; }
+  .mood-hero p{ margin:0; font-size:13px; color:var(--muted); }
+  .mood-pills{ display:flex; gap:8px; flex-wrap:wrap; margin:14px 4px 16px; }
+  .mood-grid{
+    display:grid; grid-template-columns:repeat(4, 300px); justify-content:center; gap:3px;
+  }
+  @media (max-width:1340px){ .mood-grid{ grid-template-columns:repeat(3, 300px); } }
+  @media (max-width:1020px){ .mood-grid{ grid-template-columns:repeat(2, 300px); } }
+  @media (max-width:700px){ .mood-grid{ grid-template-columns:repeat(2, minmax(140px,1fr)); } }
+  .mood-tile{ position:relative; width:300px; height:300px; overflow:hidden; background:var(--line); cursor:pointer; }
+  @media (max-width:700px){ .mood-tile{ width:100%; height:auto; aspect-ratio:1/1; } }
+  .mood-tile img{ width:100%; height:100%; object-fit:cover; display:block; transition:transform .3s ease; }
+  .mood-tile:hover img{ transform:scale(1.06); }
+  .mood-tile .overlay{
+    position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(15,10,8,0.85) 100%);
+    opacity:0; transition:opacity .18s ease; display:flex; flex-direction:column; justify-content:space-between; padding:10px;
+  }
+  .mood-tile:hover .overlay{ opacity:1; }
+  .mood-tile .badge{
+    align-self:flex-start; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.4px;
+    color:#fff; padding:4px 10px; border-radius:999px;
+  }
+  .mood-tile .title{ color:#fff; font-size:13px; font-weight:700; line-height:1.3; text-shadow:0 1px 3px rgba(0,0,0,0.5); }
+  .mood-tile .actions{ display:flex; gap:6px; flex-wrap:wrap; }
+  .mood-tile .chip{
+    background:rgba(255,255,255,0.92); color:var(--ink); border:none; border-radius:999px; padding:6px 12px;
+    font-size:11px; font-weight:700; cursor:pointer;
+  }
+  #moodSentinel{ height:1px; }
+  .mood-loader{ text-align:center; padding:22px; color:var(--muted); font-size:13px; font-weight:600; display:none; }
+  .mood-loader.active{ display:block; }
+  .mood-spin{
+    display:inline-block; width:15px; height:15px; border:2px solid var(--line); border-top-color:var(--sage);
+    border-radius:50%; animation:moodspin .7s linear infinite; margin-right:8px; vertical-align:-2px;
+  }
+  @keyframes moodspin{ to{ transform:rotate(360deg); } }
+  .mood-note{ max-width:1280px; margin:14px 4px 0; font-size:11.5px; color:var(--muted); line-height:1.5; }
+
+  /* ---- Pinboard (Pinterest-style prototype) ---- */
+  .pin-searchbar{
+    display:flex; align-items:center; gap:10px; background:var(--cream); border-radius:999px;
+    padding:12px 20px; margin-bottom:16px; border:1px solid var(--line);
+  }
+  .pin-searchbar input{
+    flex:1; border:none; background:transparent; font-size:15px; outline:none; color:var(--ink);
+  }
+  .pin-pills{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+  .pin-pill{
+    border:1px solid var(--line); background:#fff; color:var(--ink); padding:9px 18px; border-radius:999px;
+    font-size:13px; font-weight:600; cursor:pointer; transition:all .15s;
+  }
+  .pin-pill:hover{ background:var(--cream); }
+  .pin-pill.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .pin-masonry{
+    column-count:5; column-gap:14px;
+  }
+  @media (max-width:1100px){ .pin-masonry{ column-count:4; } }
+  @media (max-width:800px){ .pin-masonry{ column-count:3; } }
+  @media (max-width:560px){ .pin-masonry{ column-count:2; } }
+  .pin-card{
+    break-inside:avoid; margin-bottom:14px; border-radius:18px; overflow:hidden; position:relative;
+    box-shadow:var(--shadow); background:var(--paper); cursor:pointer;
+  }
+  .pin-card img{ width:100%; display:block; border-radius:18px; transition:transform .25s ease; }
+  .pin-card:hover img{ transform:scale(1.04); }
+  .pin-card .pin-overlay{
+    position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(20,14,12,0.82) 100%);
+    opacity:0; transition:opacity .18s ease; display:flex; flex-direction:column; justify-content:space-between;
+    padding:12px; border-radius:18px;
+  }
+  .pin-card:hover .pin-overlay{ opacity:1; }
+  .pin-overlay-top{ display:flex; justify-content:flex-end; gap:6px; }
+  .pin-save-btn{
+    background:var(--fuchsia); color:#fff; border:none; border-radius:999px; padding:8px 16px;
+    font-size:12.5px; font-weight:700; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.25);
+  }
+  .pin-save-btn:hover{ filter:brightness(0.92); }
+  .pin-overlay-bottom{ color:#fff; }
+  .pin-overlay-bottom .pin-title{ font-size:13.5px; font-weight:700; line-height:1.3; margin-bottom:6px; text-shadow:0 1px 3px rgba(0,0,0,0.4); }
+  .pin-overlay-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+  .pin-chip{
+    background:rgba(255,255,255,0.92); color:var(--ink); border:none; border-radius:999px; padding:6px 12px;
+    font-size:11.5px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-block;
+  }
+  .pin-chip:hover{ background:#fff; }
+  .pin-badge{
+    position:absolute; top:10px; left:10px; background:rgba(255,255,255,0.92); color:var(--sage-dark);
+    font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; padding:4px 10px; border-radius:999px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧵 Seasonal Sewing Studio</h1>
+  <p>Plan your wardrobe, track your makes, manage your stash — and find your next inspiration.</p>
+</header>
+
+<nav id="tabNav"></nav>
+
+<main>
+
+  <!-- MOOD BOARD (landing page) -->
+  <section class="tab" id="tab-moodboard">
+    <div class="mood-hero">
+      <h2>Your season, at a glance</h2>
+      <p>Inspiration, wardrobe plan, projects, materials, and patterns — pulled into one scrolling wall.</p>
+    </div>
+    <div class="mood-pills" id="moodPills"></div>
+    <div class="mood-grid" id="moodGrid"></div>
+    <div id="moodSentinel"></div>
+    <div class="mood-loader" id="moodLoader"><span class="mood-spin"></span>Loading more...</div>
+    <p class="mood-note">Tiles use your real project/inspiration photos where you've added them, and real reference photos from published sewing patterns (Seamwork, Tilly and the Buttons, Helen's Closet) to fill the rest — not stock/random images.</p>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="tab" id="tab-dashboard">
+    <div class="grid cols-4" id="dashStats"></div>
+    <div class="grid cols-2">
+      <div class="card">
+        <h2>Upcoming deadlines</h2>
+        <div id="dashDeadlines"></div>
+      </div>
+      <div class="card">
+        <h2>Wardrobe plan progress</h2>
+        <div id="dashProgress"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Fabric stash snapshot</h2>
+      <div id="dashFabric"></div>
+    </div>
+  </section>
+
+  <!-- INSPIRATION -->
+  <section class="tab" id="tab-inspiration">
+    <div class="card">
+      <h2>2026 Trend Guide</h2>
+      <p style="color:var(--muted); font-size:13px; margin-top:-6px;">Curated from current runway &amp; industry trend reports — a starting point for this season's makes.</p>
+
+      <h3 style="margin-top:20px;">Color palettes</h3>
+      <div class="grid cols-3" id="trendColors"></div>
+
+      <h3 style="margin-top:24px;">Prints &amp; patterns</h3>
+      <div id="trendPrints"></div>
+
+      <h3 style="margin-top:24px;">Silhouettes &amp; design details</h3>
+      <div id="trendSilhouettes"></div>
+
+      <h3 style="margin-top:24px;">Sources</h3>
+      <ul id="trendSourcesList" style="font-size:12.5px; color:var(--sage-dark); line-height:1.8; padding-left:18px; margin:0;"></ul>
+    </div>
+
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between;">
+        <h2 style="margin:0;">My inspiration board</h2>
+        <button class="btn" onclick="openModal('inspiration')">+ Add inspiration</button>
+      </div>
+      <div class="toolbar">
+        <select id="inspFilterCategory" onchange="renderInspiration()">
+          <option value="">All categories</option>
+          <option>Color Palette</option>
+          <option>Print / Pattern</option>
+          <option>Silhouette / Design</option>
+          <option>Other</option>
+        </select>
+        <select id="inspFilterSeason" onchange="renderInspiration()">
+          <option value="">All seasons</option>
+          <option>Spring</option><option>Summer</option><option>Fall</option><option>Winter</option><option>Year-Round</option>
+        </select>
+      </div>
+      <div class="grid cols-3" id="inspBoard"></div>
+    </div>
+  </section>
+
+  <!-- WARDROBE PLAN -->
+  <section class="tab" id="tab-plan">
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between;">
+        <h2 style="margin:0;">Wardrobe goals by season</h2>
+        <button class="btn" onclick="openModal('goal')">+ Add goal</button>
+      </div>
+      <select id="planSeasonFilter" onchange="renderPlan()" style="margin-bottom:12px;">
+        <option value="">All seasons</option>
+        <option>Spring</option><option>Summer</option><option>Fall</option><option>Winter</option><option>Year-Round</option>
+      </select>
+      <div id="planList"></div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section class="tab" id="tab-projects">
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between;">
+        <h2 style="margin:0;">Project board</h2>
+        <button class="btn" onclick="openModal('project')">+ Add project</button>
+      </div>
+      <div class="toolbar">
+        <select id="projSeasonFilter" onchange="renderProjects()">
+          <option value="">All seasons</option>
+          <option>Spring</option><option>Summer</option><option>Fall</option><option>Winter</option><option>Year-Round</option>
+        </select>
+      </div>
+      <div class="kanban" id="kanbanBoard"></div>
+    </div>
+  </section>
+
+  <!-- MATERIALS -->
+  <section class="tab" id="tab-materials">
+    <div class="card">
+      <h2>Net material to buy</h2>
+      <p style="color:var(--muted); font-size:13px; margin-top:-6px;">Fabric needed across all active projects (quantity × yardage per piece), minus what's already allocated from stash — so you can combine orders and buy in bulk.</p>
+      <div id="shoppingList"></div>
+    </div>
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between;">
+        <h2 style="margin:0;">Fabric stash</h2>
+        <button class="btn" onclick="openModal('fabric')">+ Add fabric</button>
+      </div>
+      <table id="fabricTable"><thead><tr>
+        <th>Name</th><th>Type</th><th>Color</th><th>Yardage</th><th>Status</th><th>Linked project</th><th></th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- PATTERNS -->
+  <section class="tab" id="tab-patterns">
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between;">
+        <h2 style="margin:0;">Owned patterns</h2>
+        <button class="btn" onclick="openModal('pattern')">+ Add pattern</button>
+      </div>
+      <table id="patternOwnedTable"><thead><tr>
+        <th>Name</th><th>Brand</th><th>Format</th><th>Size range</th><th>Linked project</th><th></th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Wishlist (not yet owned)</h2>
+      <table id="patternWishlistTable"><thead><tr>
+        <th>Name</th><th>Brand</th><th>Format</th><th>Size range</th><th>Linked project</th><th></th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- QUEUE -->
+  <section class="tab" id="tab-queue">
+    <div class="card">
+      <h2>Sewing queue</h2>
+      <p style="color:var(--muted); font-size:13px; margin-top:-6px;">Everything not yet finished, ordered by target date.</p>
+      <div id="queueList"></div>
+    </div>
+  </section>
+
+  <!-- PINBOARD (prototype) -->
+  <section class="tab" id="tab-pinboard">
+    <div class="toolbar" style="justify-content:space-between; margin-bottom:4px;">
+      <h2 style="margin:0;">Pinboard <span style="font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.4px;">— prototype</span></h2>
+      <button class="btn" onclick="openModal('inspiration')">+ Add pin</button>
+    </div>
+    <div class="pin-searchbar">
+      <span style="font-size:16px;">🔍</span>
+      <input id="pinSearch" type="text" placeholder="Search your pins..." oninput="renderPinboard()">
+    </div>
+    <div class="pin-pills" id="pinPills"></div>
+    <div class="pin-masonry" id="pinboardGrid"></div>
+  </section>
+
+</main>
+
+<footer>
+  Data is saved locally in this browser (nothing is uploaded).
+  <button class="btn secondary small" onclick="exportData()">Export backup</button>
+  <label class="btn secondary small" style="cursor:pointer;">Import / merge JSON<input type="file" accept=".json" onchange="importData(event)" style="display:none;"></label>
+  <button class="btn secondary small" onclick="loadDemoData()">Load sample demo data</button>
+</footer>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<script>
+/* ---------- Data ---------- */
+const SEASONS = ['Spring','Summer','Fall','Winter','Year-Round'];
+const CATEGORIES = ['Tops','Bottoms','Dresses','Outerwear','Loungewear','Activewear','Sleepwear','Accessories'];
+const STATUSES = ['Idea','Planned','Cutting','Sewing','Finishing','On Hold','Done'];
+const FABRIC_STATUS = ['Stash','Allocated','Used'];
+const INSP_CATEGORIES = ['Color Palette','Print / Pattern','Silhouette / Design','Other'];
+
+const STORE_KEY = 'seasonalSewingStudioData';
+
+function defaultData(){
+  return { goals: [], projects: [], fabrics: [], patterns: [], inspiration: [] };
+}
+
+let FIRST_VISIT = false;
+let DATA = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw) return Object.assign(defaultData(), JSON.parse(raw));
+  }catch(e){}
+  FIRST_VISIT = true;
+  return defaultData();
+}
+function save(){
+  localStorage.setItem(STORE_KEY, JSON.stringify(DATA));
+}
+function uid(){ return 'id'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+
+/* ---------- Demo data (realistic sample content for trying the app out) ---------- */
+function demoData(){
+  const patterns = [
+    {id:'demo_pat1', name:'Fiore Wrap Dress', brand:'Closet Core Patterns', format:'PDF', sizeRange:'0-32', owned:'Yes', notes:'True wrap with sash tie, bust darts.'},
+    {id:'demo_pat2', name:'Blackwood Cardigan', brand:"Helen's Closet", format:'PDF', sizeRange:'XS-5XL', owned:'Yes', notes:'Cropped or long, welt pockets.'},
+    {id:'demo_pat3', name:'Indigo Dress', brand:'Tilly and the Buttons', format:'PDF', sizeRange:'6-34 (UK)', owned:'Yes', notes:'Beginner-friendly pull-on shape, good for a slip-dress remix.'},
+    {id:'demo_pat4', name:'Adino Top', brand:'Seamwork', format:'PDF', sizeRange:'XS-3XL', owned:'Yes', notes:'Button-front blouse with collar variations.'},
+    {id:'demo_pat5', name:'V1795 Wide-Leg Trousers', brand:'Vogue Patterns', format:'Paper', sizeRange:'6-22', owned:'Yes', notes:'High-waisted, side-zip, needs 3in elastic for waistband ease.'},
+    {id:'demo_pat6', name:'Frida Shirt', brand:'Tilly and the Buttons', format:'PDF', sizeRange:'6-34 (UK)', owned:'No', notes:'On the wishlist — want it for the classic-shirt workshop.'},
+    {id:'demo_pat7', name:'Del Jumpsuit', brand:'Seamwork', format:'PDF', sizeRange:'XS-3XL', owned:'No', notes:'Would love this in the Neptune Green ponte once the cardigan is done.'},
+  ];
+  const fabrics = [
+    {id:'demo_fab1', name:'Muted Clay Washed Linen', type:'Washed linen', color:'Muted Clay', colorHex:'#C7A794', yardage:'2.75', unit:'yd', status:'Allocated', source:'Blackbird Fabrics', cost:'62', projectId:'demo_proj1'},
+    {id:'demo_fab2', name:'Neptune Green Ponte Knit', type:'Ponte knit', color:'Neptune Green', colorHex:'#2E6E68', yardage:'3.5', unit:'yd', status:'Allocated', source:'Stonemountain & Daughter', cost:'48', projectId:'demo_proj2'},
+    {id:'demo_fab3', name:'Festival Fuchsia Silk Charmeuse', type:'Silk charmeuse', color:'Festival Fuchsia', colorHex:'#C6318D', yardage:'1.5', unit:'yd', status:'Stash', source:'Mood Fabrics', cost:'54', projectId:''},
+    {id:'demo_fab4', name:'Burnt Olive Brushed Twill', type:'Brushed cotton twill', color:'Burnt Olive', colorHex:'#55552E', yardage:'3', unit:'yd', status:'Stash', source:'Fabricville', cost:'36', projectId:''},
+    {id:'demo_fab5', name:'All Aboard Blue Gingham Poplin', type:'Cotton poplin', color:'All Aboard Blue', colorHex:'#4C82A8', yardage:'2', unit:'yd', status:'Used', source:'Local quilt shop', cost:'22', projectId:'demo_proj4'},
+    {id:'demo_fab6', name:'Acacia Ribbed Sweater Knit', type:'Ribbed sweater knit', color:'Acacia', colorHex:'#E7C468', yardage:'2.25', unit:'yd', status:'Allocated', source:'Girl Charlee', cost:'40', projectId:'demo_proj6'},
+  ];
+  const projects = [
+    {id:'demo_proj1', name:'Fiore Wrap Dress in Muted Clay', season:'Fall', category:'Dresses', status:'Sewing', quantity:'1', yardageNeeded:'3', patternId:'demo_pat1', fabricId:'demo_fab1', targetDate:'2026-08-15', images:'https://placehold.co/500x680/C7A794/3a332c?text=Fiore+Wrap+Dress', notes:'Lengthening the sash and adding a lining for the skirt.'},
+    {id:'demo_proj2', name:'Blackwood Cardigan in Neptune Green', season:'Fall', category:'Outerwear', status:'Cutting', quantity:'1', yardageNeeded:'3.5', patternId:'demo_pat2', fabricId:'demo_fab2', targetDate:'2026-09-05', images:'https://placehold.co/500x640/2E6E68/ffffff?text=Blackwood+Cardigan', notes:'Cropped view B, welt pockets.'},
+    {id:'demo_proj3', name:'Indigo Slip Dress Remix', season:'Fall', category:'Dresses', status:'Planned', quantity:'1', yardageNeeded:'2.25', patternId:'demo_pat3', fabricId:'demo_fab3', targetDate:'2026-09-20', priority:'', notes:'Shortening to midi length, bias-cut in fuchsia silk — need a bit more than what is in stash.'},
+    {id:'demo_proj4', name:'Adino Gingham Top', season:'Summer', category:'Tops', status:'Done', quantity:'1', yardageNeeded:'2', patternId:'demo_pat4', fabricId:'demo_fab5', targetDate:'', priority:'', notes:'Finished in June — collar view A, mother-of-pearl buttons.'},
+    {id:'demo_proj5', name:'Wide-Leg Trousers in Burnt Olive', season:'Winter', category:'Bottoms', status:'Idea', quantity:'2', yardageNeeded:'2.5', patternId:'demo_pat5', fabricId:'demo_fab4', targetDate:'', priority:'', notes:'Want two pairs — one for me, one as a gift. Add front pleats and a higher rise.'},
+    {id:'demo_proj6', name:'Acacia Ribbed Pullover', season:'Fall', category:'Tops', status:'On Hold', quantity:'1', yardageNeeded:'2.25', patternId:'', fabricId:'demo_fab6', targetDate:'2026-07-10', priority:'', notes:'Paused to finish the Fiore dress first — still need a pattern.'},
+  ];
+  const goals = [
+    {id:'demo_goal1', season:'Fall', category:'Dresses', needed:'3', notes:'One wrap, one slip, one knit shift.'},
+    {id:'demo_goal2', season:'Fall', category:'Outerwear', needed:'2', notes:'A cardigan and a lightweight jacket.'},
+    {id:'demo_goal3', season:'Fall', category:'Tops', needed:'4', notes:'Mix of knit pullovers and woven blouses.'},
+    {id:'demo_goal4', season:'Summer', category:'Tops', needed:'3', notes:'Breathable cottons and linens.'},
+    {id:'demo_goal5', season:'Winter', category:'Bottoms', needed:'2', notes:'Warm trousers for cold-weather layering.'},
+  ];
+  const inspiration = [
+    {id:'demo_insp1', title:'Muted Clay everywhere at Ulla Johnson', category:'Color Palette', season:'Fall', colorHex:'#C7A794', link:'https://www.marieclaire.com/fashion/pantone-new-york-fashion-week-fall-2026-fashion-color-trends/', images:'https://placehold.co/500x700/C7A794/3a332c?text=Muted+Clay', notes:'Want to try this as a neutral instead of my usual black/navy basics.', createdAt: Date.now()-86400000*6},
+    {id:'demo_insp2', title:'Visible-seam patchwork skirt', category:'Print / Pattern', season:'Fall', colorHex:'', link:'https://www.sewdaily.com/free/sewing-into-2026-a-personal-look-at-color-craft-and-what-im-excited-to-sew/', images:'https://placehold.co/500x620/6B2C28/ffffff?text=Patchwork+Skirt', notes:'Use scraps from the fuchsia silk + olive twill, topstitch seams in a contrast thread.', createdAt: Date.now()-86400000*4},
+    {id:'demo_insp3', title:'Statement bishop sleeve blouse', category:'Silhouette / Design', season:'Fall', colorHex:'', link:'', images:'https://placehold.co/500x760/8C3A44/ffffff?text=Bishop+Sleeve', notes:'Draft a dramatic gathered sleeve onto the Adino Top bodice.', createdAt: Date.now()-86400000*2},
+    {id:'demo_insp4', title:'Gingham + ditzy floral mix for summer tops', category:'Print / Pattern', season:'Summer', colorHex:'#4C82A8', link:'https://sparrowrefashion.com/2026/02/27/10-sewing-trends-taking-over-2026-and-why-im-actually-excited-about-them/', images:'https://placehold.co/500x600/4C82A8/ffffff?text=Gingham+%2B+Ditzy+Floral', notes:'Pair a gingham bodice with a ditzy floral yoke for contrast.', createdAt: Date.now()-86400000},
+    {id:'demo_insp5', title:'Neptune Green as a new neutral', category:'Color Palette', season:'Fall', colorHex:'#2E6E68', link:'https://www.marieclaire.com/fashion/pantone-new-york-fashion-week-fall-2026-fashion-color-trends/', images:'https://placehold.co/500x680/2E6E68/ffffff?text=Neptune+Green', notes:'Considering this for the Blackwood cardigan instead of navy.', createdAt: Date.now()-86400000*5},
+    {id:'demo_insp6', title:'Acacia yellow cardigans', category:'Color Palette', season:'Fall', colorHex:'#E7C468', link:'https://www.marieclaire.com/fashion/pantone-new-york-fashion-week-fall-2026-fashion-color-trends/', images:'https://placehold.co/500x640/E7C468/3a332c?text=Acacia', notes:'Softer alternative to butter yellow — maybe the Frida shirt in this?', createdAt: Date.now()-86400000*3},
+    {id:'demo_insp7', title:'Washed linen texture everywhere', category:'Silhouette / Design', season:'Summer', colorHex:'', link:'https://www.sewdaily.com/free/sewing-into-2026-a-personal-look-at-color-craft-and-what-im-excited-to-sew/', images:'https://placehold.co/500x700/D8CBB8/3a332c?text=Washed+Linen', notes:"Etsy's 2026 Texture of the Year — want more of this in the stash.", createdAt: Date.now()-86400000*1},
+  ];
+  return { goals, projects, fabrics, patterns, inspiration };
+}
+function loadDemoData(){
+  if(DATA.goals.length || DATA.projects.length || DATA.fabrics.length || DATA.patterns.length || DATA.inspiration.length){
+    if(!confirm('This will replace your current data with sample demo data. Continue?')) return;
+  }
+  DATA = demoData();
+  save();
+  renderAll();
+}
+
+/* ---------- Trend content (sourced from fashion & sewing blogs, July 2026) ---------- */
+const TREND_COLORS = [
+  {name:'Cloud Dancer', hex:'#F0EDE5', desc:"Pantone's Color of the Year 2026 — a billowy, balanced white for quiet-luxury basics and linings.", source:'Pantone / NPR'},
+  {name:'Muted Clay', hex:'#C7A794', desc:'A dusty, beige-pink neutral rustic enough to surprise, soft enough to blend into any capsule — seen at Ulla Johnson & LoveShackFancy.', source:'Pantone FW26 · Marie Claire'},
+  {name:'Neptune Green', hex:'#2E6E68', desc:'A rich blend between blue and green, like a deeper teal — tailored pants, glossy bags, soft cardigans.', source:'Pantone FW26 · Marie Claire'},
+  {name:'Arabian Spice', hex:'#8C3A44', desc:'A tangy, purplish red inspired by an aromatic spice blend — bold and attention-grabbing.', source:'Pantone FW26 · Marie Claire'},
+  {name:'Foxglove', hex:'#CBA3C5', desc:'A dainty lilac-meets-pink shade — romantic enough for date night, sharp enough for tailored separates.', source:'Pantone FW26 · Marie Claire'},
+  {name:'Festival Fuchsia', hex:'#C6318D', desc:'Saturated eveningwear fuchsia straight off the Sergio Hudson & LaQuan Smith runways.', source:'Pantone FW26 · Marie Claire'},
+  {name:'Red Mahogany', hex:'#6B2C28', desc:'Cherry red meets chocolate brown for a decadent, grounded red — great for coats and blouses.', source:'Pantone FW26 · Marie Claire'},
+  {name:'Acacia', hex:'#E7C468', desc:'The yellow succeeding "butter yellow" — cardigans, barrel pants, raffia skirts.', source:'Pantone FW26 · Marie Claire'},
+  {name:'All Aboard Blue', hex:'#4C82A8', desc:'A coastal, maritime blue for linen button-downs, trousers, and cover-ups.', source:'Pantone FW26 · Marie Claire'},
+  {name:'Burnt Olive', hex:'#55552E', desc:'A humble, sophisticated dark green for anyone who wants depth without loud color.', source:'Pantone FW26 · Marie Claire'},
+  {name:'Patina / Icy Blue', hex:'#A9C6C6', desc:'Cool, weathered blues that sewists are pairing with washed linen and espresso browns this season.', source:'Sew Daily'},
+  {name:'Chartreuse', hex:'#B8CC3D', desc:'A viral lime-green that fashion editors keep reaching for — bags, heels, satin trousers.', source:'Who What Wear'},
+];
+
+const TREND_PRINTS = [
+  {title:'Gothic Florals', body:'For fall/winter, florals turn darker and moodier — deep grounds, painterly blooms, and a slightly mysterious edge rather than cheerful spring prints.', source:'Runway roundups · L’Officiel / Coveteur'},
+  {title:'Evolved Animal Print', body:'Leopard and zebra go abstract and painterly rather than literal — still a wardrobe fixture, just softer around the edges.', source:'Who What Wear'},
+  {title:'Monochrome Polka Dots', body:'Classic dots suit even the most pared-back minimalist wardrobe — easy to sew as an accent piece or a full dress.', source:'Who What Wear'},
+  {title:'Plaid & Tartan Revival', body:'From micro-plaid tailoring to bold tartan mini skirts — checks are showing up with softened, blurred linework and floral overlays for a fresh twist.', source:'Sew Essential · Who What Wear'},
+  {title:'Gingham & Ditzy Florals', body:'A lighter, cottagecore-adjacent check and small-scale "ditzy" floral are carrying over from spring into everyday cotton lawn and viscose separates.', source:'Sparrow Refashion'},
+  {title:'Romantic Sheers & Lace Trim', body:'Sheer fabrics finished with lace edging, layered over solids for a soft, feminine effect.', source:'Sewing.com'},
+  {title:'Visible-Seam Patchwork', body:'Patchwork is intentional and graphic, not scrappy — topstitching becomes decoration and seams are shown on purpose rather than hidden.', source:'Sew Daily'},
+  {title:'OTT Stripes', body:'Exaggerated, statement-scale stripes jumping straight from the runway to easy separates.', source:'Who What Wear'},
+];
+
+const TREND_SILHOUETTES = [
+  {title:'Shape Without Stiffness', body:'Heavy interfacing and boning are stepping back in favor of flowing silhouettes that are designed but not rigid — tulip skirts, bubble hems, balloon shapes, softly draped bodices.', source:'Sparrow Refashion · Likesew'},
+  {title:'Statement Sleeves', body:'Sleeves are the focal point of otherwise classic pieces — puffed, bishop, balloon, or tiered — an easy way to modernize a simple pattern without a full redesign.', source:'Likesew'},
+  {title:'Washed Linen Texture', body:'Etsy named washed linen its 2026 Texture of the Year — texture-forward fabrics (washed linen, bamboo jersey, rib knit, soft ponte) are doing the visual work that print used to.', source:'Sew Daily · Etsy trend report'},
+  {title:'Romantic Goth & Vintage Silhouettes', body:'Moodier florals and vintage-inspired shapes are crossing over from runway into everyday sewing patterns.', source:'Sew Daily'},
+  {title:'Cottagecore Whimsy', body:'Soft, feminine blouse details, ditzy prints, and delicate trims return every spring — this year with more intention.', source:'Sparrow Refashion'},
+  {title:'Visible Construction & Zero-Waste', body:'Pinterest searches for "zero waste crafting" are up 150% — exposed seams and patchwork are being treated as design choices, not shortcuts.', source:'Sew Daily'},
+  {title:'Elastic Waists, Intentional Shapes', body:'Comfort-driven waistbands are being paired with more considered silhouettes and better fabric choices, rather than shapeless loungewear.', source:'Sew Daily · Sewing.com'},
+];
+
+const TREND_SOURCES = [
+  {label:'Pantone Fashion Color Trend Report, NYFW Fall 2026 (via Marie Claire)', url:'https://www.marieclaire.com/fashion/pantone-new-york-fashion-week-fall-2026-fashion-color-trends/'},
+  {label:'Pantone Color of the Year 2026: Cloud Dancer (NPR)', url:'https://www.npr.org/2025/12/04/nx-s1-5632651/pantones-color-of-the-year-2026-white'},
+  {label:'Who What Wear — Fashion Colour Trends 2026', url:'https://www.whowhatwear.com/fashion/trends/fashion-colour-trends-2026'},
+  {label:'Who What Wear — Print Trends, Summer 2026', url:'https://www.whowhatwear.com/fashion/trends/print-trends-summer-2026'},
+  {label:'Sew Daily — Sewing Into 2026: Color, Craft & What I’m Excited to Sew', url:'https://www.sewdaily.com/free/sewing-into-2026-a-personal-look-at-color-craft-and-what-im-excited-to-sew/'},
+  {label:'Sparrow Refashion — 10 Sewing Trends Taking Over 2026', url:'https://sparrowrefashion.com/2026/02/27/10-sewing-trends-taking-over-2026-and-why-im-actually-excited-about-them/'},
+  {label:'Sew Essential — Spring 2026 Sewing Trends', url:'https://www.sewessential.co.uk/blogs/sewing/spring-2026-sewing-trends-patterns-and-fabrics-to-inspire-your-next-make'},
+  {label:'Likesew — 7 Sewing Trends You Need to Know in 2026', url:'https://likesew.com/blog/sewing-trends'},
+  {label:'Sewing.com — Top Spring 2026 Fabric Trends', url:'https://sewing.com/spring-sewing-fabric-trends-2026/'},
+];
+
+/* ---------- Tabs ---------- */
+const TABS = [
+  {id:'moodboard', label:'Mood Board'},
+  {id:'dashboard', label:'Dashboard'},
+  {id:'inspiration', label:'Inspiration'},
+  {id:'plan', label:'Wardrobe Plan'},
+  {id:'projects', label:'Projects'},
+  {id:'materials', label:'Materials'},
+  {id:'patterns', label:'Patterns'},
+  {id:'queue', label:'Queue'},
+  {id:'pinboard', label:'Pinboard'},
+];
+function buildNav(){
+  const nav = document.getElementById('tabNav');
+  nav.innerHTML = TABS.map(t=>`<button data-tab="${t.id}" onclick="showTab('${t.id}')">${t.label}</button>`).join('');
+}
+function showTab(id){
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.querySelectorAll('#tabNav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===id));
+  renderAll();
+  if(id==='moodboard') initMoodboard();
+}
+
+/* ---------- Helpers ---------- */
+function fabricName(id){ const f=DATA.fabrics.find(x=>x.id===id); return f? f.name : ''; }
+function patternName(id){ const p=DATA.patterns.find(x=>x.id===id); return p? p.name : ''; }
+function projectName(id){ const p=DATA.projects.find(x=>x.id===id); return p? p.name : ''; }
+function daysUntil(dateStr){
+  if(!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateStr+'T00:00:00');
+  return Math.round((d-today)/86400000);
+}
+function statusClass(s){ return s.replace(/\s+/g,''); }
+function imageList(text){
+  if(!text) return [];
+  return String(text).split(/[\n,]+/).map(s=>s.trim()).filter(Boolean).slice(0,8);
+}
+function thumbStrip(text){
+  const imgs = imageList(text);
+  if(!imgs.length) return '';
+  return `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${imgs.map(u=>
+    `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid var(--line);" onerror="this.style.display='none'"></a>`
+  ).join('')}</div>`;
+}
+
+/* ---------- Mood Board (landing feed) ---------- */
+// Real, publicly-hosted reference photos from published sewing patterns — not stock/random images.
+// Sourced from Seamwork, Tilly and the Buttons, and Helen's Closet product pages.
+const CURATED_GARMENT_PHOTOS = [
+  // Hansie Top — Seamwork (Tops)
+  ...[
+    'https://www.seamwork.com/media/products/3185/3185-08daff0f.jpg',
+    'https://www.seamwork.com/media/products/3185/3185-22188ee0.jpg',
+    'https://www.seamwork.com/media/products/3185/3185-8cc6c732.jpg',
+    'https://www.seamwork.com/media/products/3185/3185-f91d027b.jpg',
+    'https://www.seamwork.com/media/products/3185/3185-9524134f.jpg',
+    'https://www.seamwork.com/media/products/3185/3185-17493df5.jpg',
+    'https://www.seamwork.com/media/products/3185/3185-111ed27f.jpg',
+    'https://www.seamwork.com/media/products/3185/3185-3156f1a3.jpg',
+  ].map(img=>({img, garment:'Hansie Top', brand:'Seamwork', appCategory:'Tops'})),
+  // Birch Wide-Leg Trousers — Seamwork (Bottoms)
+  ...[
+    'https://www.seamwork.com/media/products/3268/3268-9ff6ed99.jpg',
+    'https://www.seamwork.com/media/products/3268/3268-ba20c520.jpg',
+    'https://www.seamwork.com/media/products/3268/3268-4b49e303.jpg',
+    'https://www.seamwork.com/media/products/3268/3268-20ec587e.jpg',
+    'https://www.seamwork.com/media/products/3268/3268-e3a941f5.jpg',
+    'https://www.seamwork.com/media/products/3268/3268-e3f459cf.jpg',
+    'https://www.seamwork.com/media/products/3268/3268-c4a67ad9.jpg',
+    'https://www.seamwork.com/media/products/3268/3268-c67497e3.jpg',
+  ].map(img=>({img, garment:'Birch Wide-Leg Trousers', brand:'Seamwork', appCategory:'Bottoms'})),
+  // Zadie Dress — Tilly and the Buttons (Dresses)
+  ...[
+    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-colour-block_740x.jpg',
+    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-long-sleeves-2_740x.jpg',
+    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-colour-block-2_740x.jpg',
+    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-colour-block-1_740x.jpg',
+    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-colour-block-4_740x.jpg',
+    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-colour-block-3_740x.jpg',
+    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-long-sleeves-3_740x.jpg',
+    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-both_740x.jpg',
+  ].map(img=>({img, garment:'Zadie Dress', brand:'Tilly and the Buttons', appCategory:'Dresses'})),
+  // Blackwood Cardigan — Helen's Closet (Outerwear)
+  ...[
+    'https://helensclosetpatterns.com/cdn/shop/files/product-images-blackwood-1.jpg?v=1730488841&width=740',
+    'https://helensclosetpatterns.com/cdn/shop/files/product-images-blackwood-2.jpg?v=1730488841&width=740',
+    'https://helensclosetpatterns.com/cdn/shop/files/blackwood_1.jpg?v=1726850567&width=740',
+    'https://helensclosetpatterns.com/cdn/shop/files/blackwood_2.jpg?v=1726850568&width=740',
+    'https://helensclosetpatterns.com/cdn/shop/files/blackwood_3.jpg?v=1726850567&width=740',
+    'https://helensclosetpatterns.com/cdn/shop/files/blackwood_22.jpg?v=1726850569&width=740',
+    'https://helensclosetpatterns.com/cdn/shop/files/blackwood_11.jpg?v=1726850569&width=740',
+    'https://helensclosetpatterns.com/cdn/shop/files/blackwood_front-1.jpg?v=1726850567&width=740',
+  ].map(img=>({img, garment:'Blackwood Cardigan', brand:"Helen's Closet", appCategory:'Outerwear'})),
+];
+
+function curatedPhotoFor(appCategory){
+  const pool = CURATED_GARMENT_PHOTOS.filter(p=>p.appCategory===appCategory);
+  const use = pool.length ? pool : CURATED_GARMENT_PHOTOS;
+  return use[Math.floor(Math.random()*use.length)];
+}
+
+const MOOD_CATEGORIES = [
+  {key:'inspiration', label:'Inspiration', color:'#8C3A44'},
+  {key:'plan', label:'Wardrobe Plan', color:'#2E6E68'},
+  {key:'projects', label:'Projects', color:'#C6318D'},
+  {key:'materials', label:'Materials', color:'#E7C468'},
+  {key:'patterns', label:'Patterns', color:'#4C82A8'},
+];
+let moodActiveFilter = 'All';
+let moodTiles = [];
+let moodObserver = null;
+
+function fabricTypeToCategory(type){
+  const t = (type||'').toLowerCase();
+  if(t.includes('knit') || t.includes('ponte') || t.includes('sweater')) return 'Outerwear';
+  if(t.includes('linen') || t.includes('twill') || t.includes('poplin') || t.includes('denim')) return 'Bottoms';
+  if(t.includes('silk') || t.includes('lawn') || t.includes('voile') || t.includes('chiffon')) return 'Dresses';
+  return 'Tops';
+}
+
+// Build the pool of candidate tiles from real app data (using real photos where present)
+// plus curated real garment photos as filler. Called once per filter change / initial load.
+function buildMoodPool(){
+  const pool = [];
+  const catDef = MOOD_CATEGORIES.find(c=>c.label===moodActiveFilter);
+  const cats = catDef ? [catDef] : MOOD_CATEGORIES;
+
+  cats.forEach(cat=>{
+    if(cat.key==='inspiration'){
+      DATA.inspiration.forEach(i=>{
+        const real = imageList(i.images);
+        if(real.length){
+          real.forEach(img=> pool.push({img, title:i.title, cat, link:i.link}));
+        } else {
+          const p = curatedPhotoFor('Tops');
+          pool.push({img:p.img, title:i.title, cat, link:i.link});
+        }
+      });
+    }
+    if(cat.key==='plan'){
+      DATA.goals.forEach(g=>{
+        const p = curatedPhotoFor(g.category);
+        pool.push({img:p.img, title:`${g.season} ${g.category} — ${g.needed||'?'} needed`, cat, link:''});
+      });
+    }
+    if(cat.key==='projects'){
+      DATA.projects.forEach(pr=>{
+        const real = imageList(pr.images);
+        if(real.length){
+          real.forEach(img=> pool.push({img, title:pr.name, cat, link:''}));
+        } else {
+          const p = curatedPhotoFor(pr.category);
+          pool.push({img:p.img, title:pr.name, cat, link:''});
+        }
+      });
+    }
+    if(cat.key==='materials'){
+      DATA.fabrics.forEach(f=>{
+        const p = curatedPhotoFor(fabricTypeToCategory(f.type));
+        pool.push({img:p.img, title:f.name, cat, link:''});
+      });
+    }
+    if(cat.key==='patterns'){
+      DATA.patterns.forEach(pt=>{
+        const match = CURATED_GARMENT_PHOTOS.find(c=> pt.name && pt.name.toLowerCase().includes(c.garment.split(' ')[0].toLowerCase()));
+        const p = match || CURATED_GARMENT_PHOTOS[Math.floor(Math.random()*CURATED_GARMENT_PHOTOS.length)];
+        pool.push({img:p.img, title:`${pt.name} — ${pt.brand||''}`, cat, link:''});
+      });
+    }
+  });
+
+  // Always have enough to show, even with sparse data: pad with curated real photos,
+  // tagged with whichever category(s) are actually active so filters stay honest.
+  if(pool.length < 12){
+    let ci = 0;
+    CURATED_GARMENT_PHOTOS.forEach(p=>{
+      const cat = cats[ci % cats.length];
+      ci++;
+      pool.push({img:p.img, title:`${p.garment} — ${p.brand}`, cat, link:''});
+    });
+  }
+  return pool;
+}
+
+function renderMoodPills(){
+  const pills = ['All', ...MOOD_CATEGORIES.map(c=>c.label)];
+  document.getElementById('moodPills').innerHTML = pills.map(label=>{
+    const cat = MOOD_CATEGORIES.find(c=>c.label===label);
+    const dot = cat ? `<span class="dot" style="width:8px;height:8px;border-radius:50%;background:${cat.color};display:inline-block;margin-right:6px;"></span>` : '';
+    return `<button class="pin-pill ${label===moodActiveFilter?'active':''}" onclick="setMoodFilter('${escJs(label)}')">${dot}${label}</button>`;
+  }).join('');
+}
+
+function setMoodFilter(label){
+  moodActiveFilter = label;
+  renderMoodPills();
+  moodTiles = [];
+  document.getElementById('moodGrid').innerHTML = '';
+  loadMoreMood(16);
+}
+
+function loadMoreMood(n){
+  const loader = document.getElementById('moodLoader');
+  if(!loader) return;
+  loader.classList.add('active');
+  setTimeout(()=>{
+    const pool = buildMoodPool();
+    if(!pool.length){ loader.classList.remove('active'); return; }
+    for(let i=0;i<n;i++) moodTiles.push(pool[Math.floor(Math.random()*pool.length)]);
+    renderMoodGrid();
+    loader.classList.remove('active');
+  }, 350);
+}
+
+function renderMoodGrid(){
+  const grid = document.getElementById('moodGrid');
+  if(!grid) return;
+  grid.innerHTML = moodTiles.map(t=>`
+    <div class="mood-tile">
+      <img src="${esc(t.img)}" alt="${esc(t.title)}" loading="lazy" onerror="this.closest('.mood-tile').style.display='none'">
+      <div class="overlay">
+        <span class="badge" style="background:${t.cat.color};">${esc(t.cat.label)}</span>
+        <div>
+          <div class="title">${esc(t.title)}</div>
+          <div class="actions" style="margin-top:6px;">
+            ${t.link ? `<a class="chip" href="${esc(t.link)}" target="_blank" rel="noopener">Visit ↗</a>` : ''}
+            <button class="chip" onclick="startProjectFrom('${escJs(t.title+' project')}', '', '', '')">+ Start project</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function initMoodboard(){
+  if(moodObserver) return; // already initialized this session
+  renderMoodPills();
+  loadMoreMood(16);
+  moodObserver = new IntersectionObserver(entries=>{
+    if(entries[0].isIntersecting) loadMoreMood(12);
+  }, { rootMargin: '600px' });
+  const sentinel = document.getElementById('moodSentinel');
+  if(sentinel) moodObserver.observe(sentinel);
+}
+
+/* ---------- Render: Dashboard ---------- */
+function renderDashboard(){
+  const active = DATA.projects.filter(p=>p.status!=='Done');
+  const done = DATA.projects.filter(p=>p.status==='Done');
+  const totalYardage = DATA.fabrics.reduce((s,f)=> s + (parseFloat(f.yardage)||0), 0);
+  document.getElementById('dashStats').innerHTML = `
+    <div class="stat"><div class="num">${DATA.projects.length}</div><div class="label">Total projects</div></div>
+    <div class="stat"><div class="num">${active.length}</div><div class="label">In progress</div></div>
+    <div class="stat"><div class="num">${done.length}</div><div class="label">Completed</div></div>
+    <div class="stat"><div class="num">${totalYardage.toFixed(1)}</div><div class="label">Yards in stash</div></div>
+  `;
+  const upcoming = active.filter(p=>p.targetDate).sort((a,b)=> new Date(a.targetDate)-new Date(b.targetDate)).slice(0,5);
+  document.getElementById('dashDeadlines').innerHTML = upcoming.length ? upcoming.map(p=>{
+    const d = daysUntil(p.targetDate);
+    const cls = d<0 ? 'overdue' : d<=14 ? 'soon' : 'ok';
+    const label = d<0 ? `${Math.abs(d)}d overdue` : d===0 ? 'Today' : `${d}d left`;
+    return `<div class="queue-item"><div class="content"><div class="urgency ${cls}"></div><div><b>${esc(p.name)}</b><div class="meta" style="color:var(--muted); font-size:12px;">${esc(p.season)} · ${esc(p.status)}</div></div></div><div style="font-weight:700; color:var(--sage-dark);">${label}</div></div>`;
+  }).join('') : `<div class="empty">No upcoming deadlines set.</div>`;
+
+  const bySeasons = SEASONS.filter(s=>s!=='Year-Round').map(season=>{
+    const goals = DATA.goals.filter(g=>g.season===season);
+    const needed = goals.reduce((s,g)=>s+(parseInt(g.needed)||0),0);
+    const fulfilled = goals.reduce((s,g)=> s + Math.min(parseInt(g.needed)||0, countDoneForGoal(g)), 0);
+    const pct = needed ? Math.round(fulfilled/needed*100) : 0;
+    return `<div style="margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; font-size:13px;"><b>${season}</b><span style="color:var(--muted);">${fulfilled}/${needed} pieces</span></div>
+      <div class="progress-bar"><div class="fill" style="width:${pct}%;"></div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('dashProgress').innerHTML = bySeasons || `<div class="empty">Add wardrobe goals to see progress.</div>`;
+
+  const byStatus = FABRIC_STATUS.map(st=>{
+    const items = DATA.fabrics.filter(f=>f.status===st);
+    const yd = items.reduce((s,f)=>s+(parseFloat(f.yardage)||0),0);
+    return `<div class="stat"><div class="num">${yd.toFixed(1)}</div><div class="label">${st} yards (${items.length})</div></div>`;
+  }).join('');
+  document.getElementById('dashFabric').innerHTML = `<div class="grid cols-3">${byStatus}</div>`;
+}
+function countDoneForGoal(g){
+  return DATA.projects.filter(p=>p.season===g.season && p.category===g.category && p.status==='Done').length;
+}
+
+/* ---------- Render: Inspiration ---------- */
+function renderInspirationTrends(){
+  document.getElementById('trendColors').innerHTML = TREND_COLORS.map(c=>`
+    <div class="palette-card">
+      <div class="swatch-row">
+        <div class="swatch" style="background:${c.hex};"></div>
+        <div><div class="name">${c.name}</div><div class="hex">${c.hex}</div></div>
+      </div>
+      <div class="desc">${c.desc}</div>
+      <div class="hex" style="margin-top:6px; font-style:italic;">Source: ${esc(c.source)}</div>
+      <button class="btn secondary small" style="margin-top:10px;" onclick="startProjectFrom('${escJs(c.name+' project')}', '${escJs('Inspired by the '+c.name+' color trend ('+c.source+').')}', '', '${c.hex}')">+ Start project</button>
+    </div>`).join('');
+  document.getElementById('trendPrints').innerHTML = TREND_PRINTS.map(t=>`
+    <div class="trend-block"><h4>${t.title}</h4><p>${t.body}</p><p style="font-size:11px; color:var(--muted); font-style:italic; margin-top:4px;">Source: ${esc(t.source)}</p>
+      <button class="btn secondary small" style="margin-top:6px;" onclick="startProjectFrom('${escJs(t.title+' project')}', '${escJs(t.body+' (Source: '+t.source+')')}', '')">+ Start project</button>
+    </div>`).join('');
+  document.getElementById('trendSilhouettes').innerHTML = TREND_SILHOUETTES.map(t=>`
+    <div class="trend-block"><h4>${t.title}</h4><p>${t.body}</p><p style="font-size:11px; color:var(--muted); font-style:italic; margin-top:4px;">Source: ${esc(t.source)}</p>
+      <button class="btn secondary small" style="margin-top:6px;" onclick="startProjectFrom('${escJs(t.title+' project')}', '${escJs(t.body+' (Source: '+t.source+')')}', '')">+ Start project</button>
+    </div>`).join('');
+  document.getElementById('trendSourcesList').innerHTML = TREND_SOURCES.map(s=>
+    `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a></li>`).join('');
+}
+function renderInspiration(){
+  const cat = document.getElementById('inspFilterCategory').value;
+  const season = document.getElementById('inspFilterSeason').value;
+  let items = DATA.inspiration.slice().sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
+  if(cat) items = items.filter(i=>i.category===cat);
+  if(season) items = items.filter(i=>i.season===season);
+  const board = document.getElementById('inspBoard');
+  if(!items.length){
+    board.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="icon">📌</div>Nothing pinned yet. Add colors, prints, or design ideas you love.</div>`;
+    return;
+  }
+  board.innerHTML = items.map(i=>`
+    <div class="palette-card">
+      <div class="swatch-row">
+        ${i.colorHex ? `<div class="swatch" style="background:${i.colorHex};"></div>` : ''}
+        <div style="flex:1;">
+          <div class="name">${esc(i.title)}</div>
+          <div class="hex">${esc(i.category)}${i.season ? ' · '+esc(i.season):''}</div>
+        </div>
+      </div>
+      ${i.notes ? `<div class="desc">${esc(i.notes)}</div>` : ''}
+      ${i.link ? `<div class="desc"><a href="${esc(i.link)}" target="_blank" rel="noopener">Reference link ↗</a></div>` : ''}
+      ${thumbStrip(i.images)}
+      <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="btn small" onclick="startProjectFrom('${escJs(i.title+' project')}', '${escJs(i.notes||'')}', '${escJs(i.season||'')}', '${i.colorHex||''}')">+ Start project</button>
+        <button class="btn secondary small" onclick="openModal('inspiration','${i.id}')">Edit</button>
+        <button class="btn danger small" onclick="deleteItem('inspiration','${i.id}')">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+/* ---------- Render: Wardrobe Plan ---------- */
+function renderPlan(){
+  const filter = document.getElementById('planSeasonFilter').value;
+  let goals = DATA.goals.slice();
+  if(filter) goals = goals.filter(g=>g.season===filter);
+  const el = document.getElementById('planList');
+  if(!goals.length){
+    el.innerHTML = `<div class="empty"><div class="icon">🧺</div>No wardrobe goals yet. Add what you want per season (e.g. "3 Tops for Fall").</div>`;
+    return;
+  }
+  el.innerHTML = goals.map(g=>{
+    const fulfilled = countDoneForGoal(g);
+    const needed = parseInt(g.needed)||0;
+    const pct = needed ? Math.min(100, Math.round(fulfilled/needed*100)) : 0;
+    return `<div class="card" style="margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <span class="season-tag">${esc(g.season)}</span>
+          <b style="margin-left:8px;">${esc(g.category)}</b>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="icon-btn" onclick="openModal('goal','${g.id}')">Edit</button>
+          <button class="icon-btn" onclick="deleteItem('goals','${g.id}')">Delete</button>
+        </div>
+      </div>
+      <div style="font-size:12px; color:var(--muted); margin-top:6px;">${fulfilled} of ${needed} finished ${g.notes ? '· '+esc(g.notes):''}</div>
+      <div class="progress-bar"><div class="fill" style="width:${pct}%;"></div></div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Render: Projects (Kanban) ---------- */
+function renderProjects(){
+  const filter = document.getElementById('projSeasonFilter').value;
+  let projects = DATA.projects.slice();
+  if(filter) projects = projects.filter(p=>p.season===filter);
+  const board = document.getElementById('kanbanBoard');
+  board.innerHTML = STATUSES.map(st=>{
+    const items = projects.filter(p=>p.status===st);
+    return `<div class="kcol">
+      <h4>${st} (${items.length})</h4>
+      ${items.map(p=>`
+        <div class="kcard" onclick="openModal('project','${p.id}')">
+          ${imageList(p.images).length ? `<img src="${esc(imageList(p.images)[0])}" alt="" style="width:100%; height:70px; object-fit:cover; border-radius:6px; margin-bottom:6px;" onerror="this.style.display='none'">` : ''}
+          <b>${esc(p.name)}</b>
+          <div class="meta">${esc(p.category||'')}${p.season? ' · '+esc(p.season):''}</div>
+          ${p.targetDate ? `<div class="meta">Due ${esc(p.targetDate)}</div>` : ''}
+        </div>`).join('') || `<div style="font-size:11px; color:var(--muted); padding:6px;">—</div>`}
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Render: Stash ---------- */
+function renderMaterials(){
+  const fBody = document.querySelector('#fabricTable tbody');
+  fBody.innerHTML = DATA.fabrics.length ? DATA.fabrics.map(f=>`
+    <tr>
+      <td>${esc(f.name)}</td>
+      <td>${esc(f.type||'')}</td>
+      <td><span class="swatch-row"><span class="swatch" style="width:16px;height:16px;background:${f.colorHex||'#ddd'};"></span>${esc(f.color||'')}</span></td>
+      <td>${f.yardage||0} ${esc(f.unit||'yd')}</td>
+      <td>${esc(f.status||'Stash')}</td>
+      <td>${esc(projectName(f.projectId))}</td>
+      <td><button class="icon-btn" onclick="openModal('fabric','${f.id}')">Edit</button> <button class="icon-btn" onclick="deleteItem('fabrics','${f.id}')">Delete</button></td>
+    </tr>`).join('') : `<tr><td colspan="7"><div class="empty">No fabric logged yet.</div></td></tr>`;
+
+  renderShoppingList();
+}
+
+function computeShoppingList(){
+  const active = DATA.projects.filter(p=>p.status!=='Done' && (parseFloat(p.yardageNeeded)||0) > 0);
+  let grandTotalNeeded = 0, grandTotalHave = 0, grandTotalToBuy = 0;
+  const rows = active.map(p=>{
+    const qty = Math.max(1, parseInt(p.quantity)||1);
+    const perPiece = parseFloat(p.yardageNeeded)||0;
+    const needed = perPiece * qty;
+    const fabric = DATA.fabrics.find(f=>f.id===p.fabricId);
+    const have = fabric ? (parseFloat(fabric.yardage)||0) : 0;
+    const toBuy = Math.max(0, needed - have);
+    grandTotalNeeded += needed; grandTotalHave += Math.min(have, needed); grandTotalToBuy += toBuy;
+    return {project:p, qty, perPiece, needed, fabricName: fabric ? fabric.name : '—', have, toBuy};
+  });
+  return {rows, grandTotalNeeded, grandTotalHave, grandTotalToBuy};
+}
+
+function renderShoppingList(){
+  const {rows, grandTotalNeeded, grandTotalToBuy} = computeShoppingList();
+  const el = document.getElementById('shoppingList');
+  if(!rows.length){
+    el.innerHTML = `<div class="empty">Add "fabric needed per piece" and a quantity to your projects to see a bulk-buy total here.</div>`;
+    return;
+  }
+  el.innerHTML = `
+    <table><thead><tr>
+      <th>Project</th><th>Qty</th><th>Needed / piece</th><th>Total needed</th><th>Fabric linked</th><th>Have</th><th>To buy</th>
+    </tr></thead><tbody>
+      ${rows.map(r=>`<tr>
+        <td>${esc(r.project.name)}</td>
+        <td>${r.qty}</td>
+        <td>${r.perPiece.toFixed(2)} yd</td>
+        <td>${r.needed.toFixed(2)} yd</td>
+        <td>${esc(r.fabricName)}</td>
+        <td>${r.have.toFixed(2)} yd</td>
+        <td style="font-weight:700; color:${r.toBuy>0?'var(--terracotta)':'var(--sage-dark)'};">${r.toBuy.toFixed(2)} yd</td>
+      </tr>`).join('')}
+    </tbody></table>
+    <div class="stat" style="margin-top:14px; max-width:260px;">
+      <div class="num">${grandTotalToBuy.toFixed(2)} yd</div>
+      <div class="label">Total to buy (of ${grandTotalNeeded.toFixed(2)} yd needed)</div>
+    </div>`;
+}
+
+function renderPatterns(){
+  const owned = DATA.patterns.filter(p=>(p.owned||'Yes')!=='No');
+  const wishlist = DATA.patterns.filter(p=>p.owned==='No');
+  const rowHtml = p => `
+    <tr>
+      <td>${esc(p.name)}</td>
+      <td>${esc(p.brand||'')}</td>
+      <td>${esc(p.format||'')}</td>
+      <td>${esc(p.sizeRange||'')}</td>
+      <td>${esc(projectName(p.projectId))}</td>
+      <td><button class="icon-btn" onclick="openModal('pattern','${p.id}')">Edit</button> <button class="icon-btn" onclick="deleteItem('patterns','${p.id}')">Delete</button></td>
+    </tr>`;
+  document.querySelector('#patternOwnedTable tbody').innerHTML = owned.length ? owned.map(rowHtml).join('') : `<tr><td colspan="6"><div class="empty">No owned patterns logged yet.</div></td></tr>`;
+  document.querySelector('#patternWishlistTable tbody').innerHTML = wishlist.length ? wishlist.map(rowHtml).join('') : `<tr><td colspan="6"><div class="empty">Nothing on the wishlist.</div></td></tr>`;
+}
+
+/* ---------- Render: Queue ---------- */
+function renderQueue(){
+  const items = DATA.projects.filter(p=>p.status!=='Done').slice().sort((a,b)=>{
+    if(!a.targetDate) return 1;
+    if(!b.targetDate) return -1;
+    return new Date(a.targetDate)-new Date(b.targetDate);
+  });
+  const el = document.getElementById('queueList');
+  if(!items.length){ el.innerHTML = `<div class="empty"><div class="icon">🪡</div>Nothing in the queue — everything's done, or add a new project.</div>`; return; }
+  el.innerHTML = items.map(p=>{
+    const d = daysUntil(p.targetDate);
+    let cls='none', label='No date set';
+    if(d!==null){ cls = d<0?'overdue': d<=14?'soon':'ok'; label = d<0 ? `${Math.abs(d)}d overdue` : d===0 ? 'Due today' : `${d}d left`; }
+    return `<div class="queue-item">
+      <div class="content">
+        <div class="urgency ${cls}"></div>
+        <div>
+          <b>${esc(p.name)}</b>
+          <div style="font-size:12px; color:var(--muted);">
+            <span class="badge ${statusClass(p.status)}">${esc(p.status)}</span>
+            ${p.season? ' <span class="season-tag">'+esc(p.season)+'</span>':''}
+            ${p.category? ' · '+esc(p.category):''}
+          </div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-weight:700; color:var(--sage-dark);">${label}</div>
+        <button class="icon-btn" onclick="openModal('project','${p.id}')">Edit</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Render: Pinboard (Pinterest-style prototype) ---------- */
+const PIN_CATEGORIES = ['All','Color Palette','Print / Pattern','Silhouette / Design','Projects','Other'];
+let pinActiveCategory = 'All';
+function setPinCategory(cat){ pinActiveCategory = cat; renderPinboard(); }
+
+function collectPins(){
+  const pins = [];
+  DATA.inspiration.forEach(i=>{
+    imageList(i.images).forEach((img,idx)=> pins.push({
+      key:'insp_'+i.id+'_'+idx, image:img, title:i.title, link:i.link, category:i.category||'Other',
+      season:i.season, colorHex:i.colorHex, notes:i.notes||'', sourceLabel:'Inspiration'
+    }));
+  });
+  DATA.projects.forEach(p=>{
+    imageList(p.images).forEach((img,idx)=> pins.push({
+      key:'proj_'+p.id+'_'+idx, image:img, title:p.name, link:'', category:'Projects',
+      season:p.season, colorHex:'', notes:p.notes||'', sourceLabel:'Project · '+(p.status||'')
+    }));
+  });
+  return pins;
+}
+
+function renderPinboard(){
+  document.getElementById('pinPills').innerHTML = PIN_CATEGORIES.map(c=>
+    `<button class="pin-pill ${c===pinActiveCategory?'active':''}" onclick="setPinCategory('${escJs(c)}')">${esc(c)}</button>`
+  ).join('');
+
+  const q = (document.getElementById('pinSearch').value||'').toLowerCase().trim();
+  let pins = collectPins();
+  if(pinActiveCategory!=='All') pins = pins.filter(p=>p.category===pinActiveCategory);
+  if(q) pins = pins.filter(p=> (p.title||'').toLowerCase().includes(q) || (p.notes||'').toLowerCase().includes(q));
+
+  const grid = document.getElementById('pinboardGrid');
+  if(!pins.length){
+    grid.innerHTML = `<div class="empty" style="column-span:all;"><div class="icon">📌</div>No pins here yet — add image URLs to your inspiration pins or projects, or click "+ Add pin" above.</div>`;
+    return;
+  }
+  grid.innerHTML = pins.map(p=>`
+    <div class="pin-card">
+      <img src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy" onerror="this.closest('.pin-card').style.display='none'">
+      <span class="pin-badge">${esc(p.category)}</span>
+      <div class="pin-overlay">
+        <div class="pin-overlay-top">
+          <button class="pin-save-btn" onclick="startProjectFrom('${escJs(p.title+' project')}', '${escJs(p.notes)}', '${escJs(p.season||'')}', '${p.colorHex||''}')">+ Start project</button>
+        </div>
+        <div class="pin-overlay-bottom">
+          <div class="pin-title">${esc(p.title)}</div>
+          <div class="pin-overlay-actions">
+            ${p.link ? `<a class="pin-chip" href="${esc(p.link)}" target="_blank" rel="noopener">Visit ↗</a>` : ''}
+            <span class="pin-chip">${esc(p.sourceLabel)}</span>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderAll(){
+  renderDashboard();
+  renderInspirationTrends();
+  renderInspiration();
+  renderPlan();
+  renderProjects();
+  renderMaterials();
+  renderPatterns();
+  renderQueue();
+  renderPinboard();
+}
+
+function esc(s){
+  if(s===undefined || s===null) return '';
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// Escapes text for safe embedding inside a single-quoted JS string literal within an HTML onclick attribute
+function escJs(s){
+  if(s===undefined || s===null) return '';
+  return String(s)
+    .replace(/\\/g,'\\\\')
+    .replace(/'/g,"\\'")
+    .replace(/\n/g,'\\n')
+    .replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+}
+
+/* ---------- Modal / CRUD ---------- */
+const FORMS = {
+  goal: {
+    title:'Wardrobe goal',
+    fields:[
+      {key:'season', label:'Season', type:'select', options:SEASONS},
+      {key:'category', label:'Category', type:'select', options:CATEGORIES},
+      {key:'needed', label:'Pieces needed', type:'number'},
+      {key:'notes', label:'Notes', type:'textarea'},
+    ],
+    store:'goals'
+  },
+  project: {
+    title:'Sewing project',
+    fields:[
+      {key:'name', label:'Project name', type:'text'},
+      {key:'season', label:'Season', type:'select', options:SEASONS},
+      {key:'category', label:'Category', type:'select', options:CATEGORIES},
+      {key:'status', label:'Status', type:'select', options:STATUSES},
+      {key:'quantity', label:'How many to make', type:'number'},
+      {key:'yardageNeeded', label:'Fabric needed per piece (yd)', type:'number'},
+      {key:'patternId', label:'Pattern', type:'select', optionsFn:()=>DATA.patterns.map(p=>({value:p.id,label:p.name})), allowEmpty:true},
+      {key:'fabricId', label:'Fabric', type:'select', optionsFn:()=>DATA.fabrics.map(f=>({value:f.id,label:f.name})), allowEmpty:true},
+      {key:'targetDate', label:'Target date', type:'date'},
+      {key:'images', label:'Reference image URLs (one per line)', type:'textarea'},
+      {key:'notes', label:'Notes', type:'textarea'},
+    ],
+    store:'projects'
+  },
+  fabric: {
+    title:'Fabric',
+    fields:[
+      {key:'name', label:'Name', type:'text'},
+      {key:'type', label:'Fiber / type (e.g. cotton lawn)', type:'text'},
+      {key:'color', label:'Color name', type:'text'},
+      {key:'colorHex', label:'Color swatch', type:'color'},
+      {key:'yardage', label:'Yardage', type:'number'},
+      {key:'unit', label:'Unit', type:'select', options:['yd','m']},
+      {key:'status', label:'Status', type:'select', options:FABRIC_STATUS},
+      {key:'source', label:'Source', type:'text'},
+      {key:'projectId', label:'Linked project', type:'select', optionsFn:()=>DATA.projects.map(p=>({value:p.id,label:p.name})), allowEmpty:true},
+    ],
+    store:'fabrics'
+  },
+  pattern: {
+    title:'Pattern',
+    fields:[
+      {key:'name', label:'Name', type:'text'},
+      {key:'brand', label:'Brand', type:'text'},
+      {key:'format', label:'Format', type:'select', options:['PDF','Paper','Traced/Draft']},
+      {key:'sizeRange', label:'Size range', type:'text'},
+      {key:'owned', label:'Owned?', type:'select', options:['Yes','No']},
+      {key:'projectId', label:'Linked project', type:'select', optionsFn:()=>DATA.projects.map(p=>({value:p.id,label:p.name})), allowEmpty:true},
+      {key:'notes', label:'Notes', type:'textarea'},
+    ],
+    store:'patterns'
+  },
+  inspiration: {
+    title:'Inspiration pin',
+    fields:[
+      {key:'title', label:'Title', type:'text'},
+      {key:'category', label:'Category', type:'select', options:INSP_CATEGORIES},
+      {key:'season', label:'Season', type:'select', options:SEASONS, allowEmpty:true},
+      {key:'colorHex', label:'Color swatch (optional)', type:'color'},
+      {key:'link', label:'Reference link (optional)', type:'text'},
+      {key:'images', label:'Image URLs (one per line)', type:'textarea'},
+      {key:'notes', label:'Notes', type:'textarea'},
+    ],
+    store:'inspiration'
+  }
+};
+
+let currentModal = null;
+
+function startProjectFrom(name, notes, season, colorHex){
+  openModal('project', null, {
+    name: name,
+    notes: notes || '',
+    season: season || '',
+  });
+  // drop a color swatch reference into notes so it isn't lost (project form has no dedicated color field)
+  if(colorHex){
+    setTimeout(()=>{
+      const notesEl = document.getElementById('f_notes');
+      if(notesEl && !notesEl.value.includes(colorHex)) notesEl.value += (notesEl.value ? '\n' : '') + 'Reference color: ' + colorHex;
+    }, 0);
+  }
+}
+
+function openModal(type, id, prefill){
+  currentModal = {type, id: id||null};
+  const form = FORMS[type];
+  const existing = id ? DATA[form.store].find(x=>x.id===id) : null;
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<h3>${existing?'Edit':'Add'} ${form.title}</h3>` +
+    form.fields.map(f=>{
+      let val = existing ? (existing[f.key]||'') : '';
+      if(!existing && prefill && prefill[f.key]!==undefined) val = prefill[f.key];
+      if(f.type==='select'){
+        const opts = f.optionsFn ? f.optionsFn() : f.options.map(o=>({value:o,label:o}));
+        const emptyOpt = f.allowEmpty ? `<option value="">—</option>` : '';
+        return `<div class="field"><label>${f.label}</label><select id="f_${f.key}">${emptyOpt}${opts.map(o=>`<option value="${esc(o.value)}" ${o.value===val?'selected':''}>${esc(o.label)}</option>`).join('')}</select></div>`;
+      }
+      if(f.type==='textarea'){
+        return `<div class="field"><label>${f.label}</label><textarea id="f_${f.key}">${esc(val)}</textarea></div>`;
+      }
+      if(f.type==='color'){
+        return `<div class="field"><label>${f.label}</label><input type="color" id="f_${f.key}" value="${val||'#c1704f'}"></div>`;
+      }
+      return `<div class="field"><label>${f.label}</label><input type="${f.type}" id="f_${f.key}" value="${esc(val)}"></div>`;
+    }).join('') +
+    `<div class="modal-actions">
+      <div>${existing ? `<button class="btn danger" onclick="deleteItem('${form.store}','${existing.id}'); closeModal();">Delete</button>` : ''}</div>
+      <div class="right">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" onclick="saveModal()">Save</button>
+      </div>
+    </div>`;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('active');
+  currentModal = null;
+}
+function saveModal(){
+  const {type, id} = currentModal;
+  const form = FORMS[type];
+  const record = id ? DATA[form.store].find(x=>x.id===id) : {id: uid(), createdAt: Date.now()};
+  form.fields.forEach(f=>{
+    const el = document.getElementById('f_'+f.key);
+    record[f.key] = el.value;
+  });
+  if(!id) DATA[form.store].push(record);
+  save();
+  closeModal();
+  renderAll();
+}
+function deleteItem(store, id){
+  if(!confirm('Delete this item?')) return;
+  DATA[store] = DATA[store].filter(x=>x.id!==id);
+  save();
+  renderAll();
+}
+
+/* ---------- Export / Import ---------- */
+function exportData(){
+  const blob = new Blob([JSON.stringify(DATA,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'seasonal-sewing-studio-backup.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const parsed = JSON.parse(e.target.result);
+      let added = 0, updated = 0;
+      Object.keys(defaultData()).forEach(store=>{
+        const incoming = Array.isArray(parsed[store]) ? parsed[store] : [];
+        incoming.forEach(item=>{
+          const idx = DATA[store].findIndex(x=>x.id===item.id);
+          if(idx>=0){ DATA[store][idx] = item; updated++; }
+          else { DATA[store].push(item); added++; }
+        });
+      });
+      save();
+      renderAll();
+      alert(`Import complete — ${added} item(s) added, ${updated} updated. Nothing else was removed.`);
+    }catch(err){ alert('Could not read that file.'); }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------- Init ---------- */
+// Seed demo data whenever there's genuinely nothing yet — covers both a true first visit
+// AND an earlier session that saved an empty data object before demo content existed.
+const isCompletelyEmpty = !DATA.goals.length && !DATA.projects.length && !DATA.fabrics.length && !DATA.patterns.length && !DATA.inspiration.length;
+if(FIRST_VISIT || isCompletelyEmpty){
+  DATA = demoData();
+  save();
+}
+buildNav();
+showTab('moodboard');
+</script>
+
+</body>
+</html>
