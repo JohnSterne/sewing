@@ -884,151 +884,67 @@ async function handleImageUpload(key, fileList){
 }
 
 /* ---------- Mood Board (landing feed) ---------- */
-// Real, publicly-hosted reference photos from published sewing patterns — not stock/random images.
-// Sourced from Seamwork, Tilly and the Buttons, and Helen's Closet product pages.
-const CURATED_GARMENT_PHOTOS = [
-  // Hansie Top — Seamwork (Tops)
-  ...[
-    'https://www.seamwork.com/media/products/3185/3185-08daff0f.jpg',
-    'https://www.seamwork.com/media/products/3185/3185-22188ee0.jpg',
-    'https://www.seamwork.com/media/products/3185/3185-8cc6c732.jpg',
-    'https://www.seamwork.com/media/products/3185/3185-f91d027b.jpg',
-    'https://www.seamwork.com/media/products/3185/3185-9524134f.jpg',
-    'https://www.seamwork.com/media/products/3185/3185-17493df5.jpg',
-    'https://www.seamwork.com/media/products/3185/3185-111ed27f.jpg',
-    'https://www.seamwork.com/media/products/3185/3185-3156f1a3.jpg',
-  ].map(img=>({img, garment:'Hansie Top', brand:'Seamwork', appCategory:'Tops'})),
-  // Birch Wide-Leg Trousers — Seamwork (Bottoms)
-  ...[
-    'https://www.seamwork.com/media/products/3268/3268-9ff6ed99.jpg',
-    'https://www.seamwork.com/media/products/3268/3268-ba20c520.jpg',
-    'https://www.seamwork.com/media/products/3268/3268-4b49e303.jpg',
-    'https://www.seamwork.com/media/products/3268/3268-20ec587e.jpg',
-    'https://www.seamwork.com/media/products/3268/3268-e3a941f5.jpg',
-    'https://www.seamwork.com/media/products/3268/3268-e3f459cf.jpg',
-    'https://www.seamwork.com/media/products/3268/3268-c4a67ad9.jpg',
-    'https://www.seamwork.com/media/products/3268/3268-c67497e3.jpg',
-  ].map(img=>({img, garment:'Birch Wide-Leg Trousers', brand:'Seamwork', appCategory:'Bottoms'})),
-  // Zadie Dress — Tilly and the Buttons (Dresses)
-  ...[
-    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-colour-block_740x.jpg',
-    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-long-sleeves-2_740x.jpg',
-    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-colour-block-2_740x.jpg',
-    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-colour-block-1_740x.jpg',
-    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-colour-block-4_740x.jpg',
-    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-colour-block-3_740x.jpg',
-    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-long-sleeves-3_740x.jpg',
-    'https://tillyandthebuttons.com/cdn/shop/products/Zadie-both_740x.jpg',
-  ].map(img=>({img, garment:'Zadie Dress', brand:'Tilly and the Buttons', appCategory:'Dresses'})),
-  // Blackwood Cardigan — Helen's Closet (Outerwear)
-  ...[
-    'https://helensclosetpatterns.com/cdn/shop/files/product-images-blackwood-1.jpg?v=1730488841&width=740',
-    'https://helensclosetpatterns.com/cdn/shop/files/product-images-blackwood-2.jpg?v=1730488841&width=740',
-    'https://helensclosetpatterns.com/cdn/shop/files/blackwood_1.jpg?v=1726850567&width=740',
-    'https://helensclosetpatterns.com/cdn/shop/files/blackwood_2.jpg?v=1726850568&width=740',
-    'https://helensclosetpatterns.com/cdn/shop/files/blackwood_3.jpg?v=1726850567&width=740',
-    'https://helensclosetpatterns.com/cdn/shop/files/blackwood_22.jpg?v=1726850569&width=740',
-    'https://helensclosetpatterns.com/cdn/shop/files/blackwood_11.jpg?v=1726850569&width=740',
-    'https://helensclosetpatterns.com/cdn/shop/files/blackwood_front-1.jpg?v=1726850567&width=740',
-  ].map(img=>({img, garment:'Blackwood Cardigan', brand:"Helen's Closet", appCategory:'Outerwear'})),
-];
-
-function curatedPhotoFor(appCategory){
-  const pool = CURATED_GARMENT_PHOTOS.filter(p=>p.appCategory===appCategory);
-  const use = pool.length ? pool : CURATED_GARMENT_PHOTOS;
-  return use[Math.floor(Math.random()*use.length)];
-}
+// Every tile comes from photos you've personally uploaded or linked in Inspiration, Projects,
+// Materials, or Patterns — nothing here is stock/curated on your behalf.
 
 const MOOD_CATEGORIES = [
   {key:'inspiration', label:'Inspiration', color:'#8C3A44'},
-  {key:'plan', label:'Wardrobe Plan', color:'#2E6E68'},
   {key:'projects', label:'Projects', color:'#C6318D'},
   {key:'materials', label:'Materials', color:'#E7C468'},
   {key:'patterns', label:'Patterns', color:'#4C82A8'},
 ];
 let moodActiveFilter = 'All';
 let moodTiles = [];
+let moodQueue = [];
 let moodObserver = null;
 
-function fabricTypeToCategory(type){
-  const t = (type||'').toLowerCase();
-  if(t.includes('knit') || t.includes('ponte') || t.includes('sweater')) return 'Outerwear';
-  if(t.includes('linen') || t.includes('twill') || t.includes('poplin') || t.includes('denim')) return 'Bottoms';
-  if(t.includes('silk') || t.includes('lawn') || t.includes('voile') || t.includes('chiffon')) return 'Dresses';
-  return 'Tops';
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
 }
 
-// Build the pool of candidate tiles from real app data (using real photos where present)
-// plus curated real garment photos as filler. Called once per filter change / initial load.
+// Build the pool of candidate tiles from real app data only — every image you've uploaded
+// or pasted a link for in Inspiration, Projects, Materials, or Patterns. De-duplicated by
+// image URL so the same photo never shows up twice. Called once per filter change / initial load.
 function buildMoodPool(){
   const pool = [];
+  const seen = new Set();
   const catDef = MOOD_CATEGORIES.find(c=>c.label===moodActiveFilter);
   const cats = catDef ? [catDef] : MOOD_CATEGORIES;
+
+  function addTile(img, title, cat, link){
+    if(!img || seen.has(img)) return; // skip duplicates — same photo never appears twice
+    seen.add(img);
+    pool.push({img, title, cat, link});
+  }
 
   cats.forEach(cat=>{
     if(cat.key==='inspiration'){
       DATA.inspiration.forEach(i=>{
-        const real = imageList(i.images);
-        if(real.length){
-          real.forEach(img=> pool.push({img, title:i.title, cat, link:i.link}));
-        } else {
-          const p = curatedPhotoFor('Tops');
-          pool.push({img:p.img, title:i.title, cat, link:i.link});
-        }
-      });
-    }
-    if(cat.key==='plan'){
-      DATA.goals.forEach(g=>{
-        const p = curatedPhotoFor(g.category);
-        pool.push({img:p.img, title:`${g.season} ${g.category} — ${g.needed||'?'} needed`, cat, link:''});
+        imageList(i.images).forEach(img=> addTile(img, i.title, cat, i.link));
       });
     }
     if(cat.key==='projects'){
       DATA.projects.forEach(pr=>{
-        const real = imageList(pr.images);
-        if(real.length){
-          real.forEach(img=> pool.push({img, title:pr.name, cat, link:''}));
-        } else {
-          const p = curatedPhotoFor(pr.category);
-          pool.push({img:p.img, title:pr.name, cat, link:''});
-        }
+        imageList(pr.images).forEach(img=> addTile(img, pr.name, cat, ''));
       });
     }
     if(cat.key==='materials'){
       DATA.fabrics.forEach(f=>{
-        const real = imageList(f.images);
-        if(real.length){
-          real.forEach(img=> pool.push({img, title:f.name, cat, link:''}));
-        } else {
-          const p = curatedPhotoFor(fabricTypeToCategory(f.type));
-          pool.push({img:p.img, title:f.name, cat, link:''});
-        }
+        imageList(f.images).forEach(img=> addTile(img, f.name, cat, ''));
       });
     }
     if(cat.key==='patterns'){
       DATA.patterns.forEach(pt=>{
-        const real = imageList(pt.images);
-        if(real.length){
-          real.forEach(img=> pool.push({img, title:`${pt.name} — ${pt.brand||''}`, cat, link:''}));
-        } else {
-          const match = CURATED_GARMENT_PHOTOS.find(c=> pt.name && pt.name.toLowerCase().includes(c.garment.split(' ')[0].toLowerCase()));
-          const p = match || CURATED_GARMENT_PHOTOS[Math.floor(Math.random()*CURATED_GARMENT_PHOTOS.length)];
-          pool.push({img:p.img, title:`${pt.name} — ${pt.brand||''}`, cat, link:''});
-        }
+        imageList(pt.images).forEach(img=> addTile(img, `${pt.name} — ${pt.brand||''}`, cat, ''));
       });
     }
   });
 
-  // Always have enough to show, even with sparse data: pad with curated real photos,
-  // tagged with whichever category(s) are actually active so filters stay honest.
-  if(pool.length < 12){
-    let ci = 0;
-    CURATED_GARMENT_PHOTOS.forEach(p=>{
-      const cat = cats[ci % cats.length];
-      ci++;
-      pool.push({img:p.img, title:`${p.garment} — ${p.brand}`, cat, link:''});
-    });
-  }
   return pool;
 }
 
@@ -1045,6 +961,7 @@ function setMoodFilter(label){
   moodActiveFilter = label;
   renderMoodPills();
   moodTiles = [];
+  moodQueue = shuffle(buildMoodPool());
   document.getElementById('moodGrid').innerHTML = '';
   loadMoreMood(16);
 }
@@ -1052,11 +969,11 @@ function setMoodFilter(label){
 function loadMoreMood(n){
   const loader = document.getElementById('moodLoader');
   if(!loader) return;
+  if(!moodQueue.length){ loader.classList.remove('active'); renderMoodGrid(); return; }
   loader.classList.add('active');
   setTimeout(()=>{
-    const pool = buildMoodPool();
-    if(!pool.length){ loader.classList.remove('active'); return; }
-    for(let i=0;i<n;i++) moodTiles.push(pool[Math.floor(Math.random()*pool.length)]);
+    // Page through the shuffled, de-duplicated queue — never repeats a photo within a session.
+    moodTiles = moodTiles.concat(moodQueue.splice(0, n));
     renderMoodGrid();
     loader.classList.remove('active');
   }, 350);
@@ -1065,6 +982,10 @@ function loadMoreMood(n){
 function renderMoodGrid(){
   const grid = document.getElementById('moodGrid');
   if(!grid) return;
+  if(!moodTiles.length){
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="icon">📷</div>No photos yet — upload some in Materials, Patterns, Projects, or Inspiration and they'll show up here.</div>`;
+    return;
+  }
   grid.innerHTML = moodTiles.map(t=>`
     <div class="mood-tile">
       <img src="${esc(t.img)}" alt="${esc(t.title)}" loading="lazy" onerror="this.closest('.mood-tile').style.display='none'">
@@ -1082,9 +1003,14 @@ function renderMoodGrid(){
 }
 
 function initMoodboard(){
-  if(moodObserver) return; // already initialized this session
+  // Rebuild the pool each time the tab is opened so newly uploaded photos show up,
+  // but only attach the scroll observer once per session.
   renderMoodPills();
+  moodTiles = [];
+  document.getElementById('moodGrid').innerHTML = '';
+  moodQueue = shuffle(buildMoodPool());
   loadMoreMood(16);
+  if(moodObserver) return;
   moodObserver = new IntersectionObserver(entries=>{
     if(entries[0].isIntersecting) loadMoreMood(12);
   }, { rootMargin: '600px' });
