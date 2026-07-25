@@ -524,7 +524,7 @@
         <button class="btn" onclick="openModal('fabric')">+ Add fabric</button>
       </div>
       <table id="fabricTable"><thead><tr>
-        <th>Photo</th><th>Name</th><th>Type</th><th>Color</th><th>Yardage</th><th>Status</th><th>Linked project</th><th></th>
+        <th>Photo</th><th>Name</th><th>Type</th><th>Details</th><th>Color</th><th>Yardage</th><th>Status</th><th>Linked project</th><th></th>
       </tr></thead><tbody></tbody></table>
     </div>
   </section>
@@ -591,6 +591,12 @@ const CATEGORIES = ['Tops','Bottoms','Dresses','Outerwear','Loungewear','Activew
 const STATUSES = ['Idea','Planned','Cutting','Sewing','Finishing','On Hold','Done'];
 const FABRIC_STATUS = ['Stash','Allocated','Used'];
 const INSP_CATEGORIES = ['Color Palette','Print / Pattern','Silhouette / Design','Other'];
+// Weight/stretch/transparency options match the classification systems used by garment fabric
+// retailers (e.g. Blackbird Fabrics' site filters, and the sheer/semi-sheer/opaque glossary
+// used across fabric shops) so the values here should look familiar when you're fabric shopping.
+const FABRIC_WEIGHTS = ['Lightweight (up to 200 gsm)','Midweight (200–400 gsm)','Heavyweight (400+ gsm)'];
+const FABRIC_STRETCH = ['None (Woven, no stretch)','2-Way Stretch','4-Way Stretch'];
+const FABRIC_TRANSPARENCY = ['Opaque','Semi-Sheer','Sheer'];
 
 const STORE_KEY = 'seasonalSewingStudioData'; // offline cache mirror only — Supabase is the source of truth
 
@@ -718,12 +724,12 @@ function demoData(){
     {id:'demo_pat7', name:'Del Jumpsuit', brand:'Seamwork', format:'PDF', sizeRange:'XS-3XL', owned:'No', notes:'Would love this in the Neptune Green ponte once the cardigan is done.'},
   ];
   const fabrics = [
-    {id:'demo_fab1', name:'Muted Clay Washed Linen', type:'Washed linen', color:'Muted Clay', colorHex:'#C7A794', yardage:'2.75', unit:'yd', status:'Allocated', source:'Blackbird Fabrics', cost:'62', projectId:'demo_proj1'},
-    {id:'demo_fab2', name:'Neptune Green Ponte Knit', type:'Ponte knit', color:'Neptune Green', colorHex:'#2E6E68', yardage:'3.5', unit:'yd', status:'Allocated', source:'Stonemountain & Daughter', cost:'48', projectId:'demo_proj2'},
-    {id:'demo_fab3', name:'Festival Fuchsia Silk Charmeuse', type:'Silk charmeuse', color:'Festival Fuchsia', colorHex:'#C6318D', yardage:'1.5', unit:'yd', status:'Stash', source:'Mood Fabrics', cost:'54', projectId:''},
-    {id:'demo_fab4', name:'Burnt Olive Brushed Twill', type:'Brushed cotton twill', color:'Burnt Olive', colorHex:'#55552E', yardage:'3', unit:'yd', status:'Stash', source:'Fabricville', cost:'36', projectId:''},
-    {id:'demo_fab5', name:'All Aboard Blue Gingham Poplin', type:'Cotton poplin', color:'All Aboard Blue', colorHex:'#4C82A8', yardage:'2', unit:'yd', status:'Used', source:'Local quilt shop', cost:'22', projectId:'demo_proj4'},
-    {id:'demo_fab6', name:'Acacia Ribbed Sweater Knit', type:'Ribbed sweater knit', color:'Acacia', colorHex:'#E7C468', yardage:'2.25', unit:'yd', status:'Allocated', source:'Girl Charlee', cost:'40', projectId:'demo_proj6'},
+    {id:'demo_fab1', name:'Muted Clay Washed Linen', type:'Washed linen', weight:'Midweight (200–400 gsm)', stretch:'None (Woven, no stretch)', transparency:'Opaque', color:'Muted Clay', colorHex:'#C7A794', yardage:'2.75', unit:'yd', status:'Allocated', source:'Blackbird Fabrics', cost:'62', projectId:'demo_proj1'},
+    {id:'demo_fab2', name:'Neptune Green Ponte Knit', type:'Ponte knit', weight:'Midweight (200–400 gsm)', stretch:'4-Way Stretch', transparency:'Opaque', color:'Neptune Green', colorHex:'#2E6E68', yardage:'3.5', unit:'yd', status:'Allocated', source:'Stonemountain & Daughter', cost:'48', projectId:'demo_proj2'},
+    {id:'demo_fab3', name:'Festival Fuchsia Silk Charmeuse', type:'Silk charmeuse', weight:'Lightweight (up to 200 gsm)', stretch:'None (Woven, no stretch)', transparency:'Semi-Sheer', color:'Festival Fuchsia', colorHex:'#C6318D', yardage:'1.5', unit:'yd', status:'Stash', source:'Mood Fabrics', cost:'54', projectId:''},
+    {id:'demo_fab4', name:'Burnt Olive Brushed Twill', type:'Brushed cotton twill', weight:'Midweight (200–400 gsm)', stretch:'None (Woven, no stretch)', transparency:'Opaque', color:'Burnt Olive', colorHex:'#55552E', yardage:'3', unit:'yd', status:'Stash', source:'Fabricville', cost:'36', projectId:''},
+    {id:'demo_fab5', name:'All Aboard Blue Gingham Poplin', type:'Cotton poplin', weight:'Lightweight (up to 200 gsm)', stretch:'None (Woven, no stretch)', transparency:'Opaque', color:'All Aboard Blue', colorHex:'#4C82A8', yardage:'2', unit:'yd', status:'Used', source:'Local quilt shop', cost:'22', projectId:'demo_proj4'},
+    {id:'demo_fab6', name:'Acacia Ribbed Sweater Knit', type:'Ribbed sweater knit', weight:'Midweight (200–400 gsm)', stretch:'2-Way Stretch', transparency:'Opaque', color:'Acacia', colorHex:'#E7C468', yardage:'2.25', unit:'yd', status:'Allocated', source:'Girl Charlee', cost:'40', projectId:'demo_proj6'},
   ];
   const projects = [
     {id:'demo_proj1', name:'Fiore Wrap Dress in Muted Clay', season:'Fall', category:'Dresses', status:'Sewing', quantity:'1', yardageNeeded:'3', patternId:'demo_pat1', fabricId:'demo_fab1', targetDate:'2026-08-15', images:'https://placehold.co/500x680/C7A794/3a332c?text=Fiore+Wrap+Dress', notes:'Lengthening the sash and adding a lining for the skirt.'},
@@ -1217,6 +1223,17 @@ function renderProjects(){
 }
 
 /* ---------- Render: Stash ---------- */
+// Short pills summarizing weight/stretch/transparency for the fabric table — only shows what's set,
+// using shorthand labels (e.g. "Midweight" instead of the full "Midweight (200–400 gsm)").
+function fabricDetailTags(f){
+  const tags = [];
+  if(f.weight) tags.push(f.weight.split(' (')[0]);
+  if(f.stretch) tags.push(f.stretch.split(' (')[0]);
+  if(f.transparency) tags.push(f.transparency);
+  if(!tags.length) return '';
+  return tags.map(t=>`<span class="season-tag" style="margin:1px 3px 1px 0; display:inline-block;">${esc(t)}</span>`).join('');
+}
+
 function renderMaterials(){
   const fBody = document.querySelector('#fabricTable tbody');
   fBody.innerHTML = DATA.fabrics.length ? DATA.fabrics.map(f=>`
@@ -1224,12 +1241,13 @@ function renderMaterials(){
       <td>${imageList(f.images).length ? `<img src="${esc(imageList(f.images)[0])}" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:6px; border:1px solid var(--line);" onerror="this.style.display='none'">` : ''}</td>
       <td>${esc(f.name)}</td>
       <td>${esc(f.type||'')}</td>
+      <td>${fabricDetailTags(f)}</td>
       <td><span class="swatch-row"><span class="swatch" style="width:16px;height:16px;background:${f.colorHex||'#ddd'};"></span>${esc(f.color||'')}</span></td>
       <td>${f.yardage||0} ${esc(f.unit||'yd')}</td>
       <td>${esc(f.status||'Stash')}</td>
       <td>${esc(projectName(f.projectId))}</td>
       <td><button class="icon-btn" onclick="openModal('fabric','${f.id}')">Edit</button> <button class="icon-btn" onclick="deleteItem('fabrics','${f.id}')">Delete</button></td>
-    </tr>`).join('') : `<tr><td colspan="8"><div class="empty">No fabric logged yet.</div></td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="9"><div class="empty">No fabric logged yet.</div></td></tr>`;
 
   renderShoppingList();
 }
@@ -1446,6 +1464,9 @@ const FORMS = {
     fields:[
       {key:'name', label:'Name', type:'text'},
       {key:'type', label:'Fiber / type (e.g. cotton lawn)', type:'text'},
+      {key:'weight', label:'Weight / thickness', type:'select', options:FABRIC_WEIGHTS, allowEmpty:true},
+      {key:'stretch', label:'Stretch', type:'select', options:FABRIC_STRETCH, allowEmpty:true},
+      {key:'transparency', label:'Transparency', type:'select', options:FABRIC_TRANSPARENCY, allowEmpty:true},
       {key:'color', label:'Color name', type:'text'},
       {key:'colorHex', label:'Color swatch', type:'color'},
       {key:'yardage', label:'Yardage', type:'number'},
