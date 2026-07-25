@@ -467,6 +467,18 @@
     </div>
   </section>
 
+  <!-- STYLE ARCHETYPES -->
+  <section class="tab" id="tab-style">
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between;">
+        <h2 style="margin:0;">Your style archetypes</h2>
+        <button class="btn" onclick="openModal('styleArchetype')">+ Add archetype</button>
+      </div>
+      <p style="color:var(--muted); font-size:13px; margin-top:-6px;">The words, colors, and reference photos that define your personal style — so it's easy to check any project or fabric against what actually feels like "you."</p>
+      <div class="grid cols-3" id="styleBoard"></div>
+    </div>
+  </section>
+
   <!-- WARDROBE PLAN -->
   <section class="tab" id="tab-plan">
     <div class="card">
@@ -583,7 +595,7 @@ const INSP_CATEGORIES = ['Color Palette','Print / Pattern','Silhouette / Design'
 const STORE_KEY = 'seasonalSewingStudioData'; // offline cache mirror only — Supabase is the source of truth
 
 function defaultData(){
-  return { goals: [], projects: [], fabrics: [], patterns: [], inspiration: [] };
+  return { goals: [], projects: [], fabrics: [], patterns: [], inspiration: [], styleArchetypes: [] };
 }
 
 /* ---------- Supabase auth + persistence ---------- */
@@ -737,10 +749,14 @@ function demoData(){
     {id:'demo_insp6', title:'Acacia yellow cardigans', category:'Color Palette', season:'Fall', colorHex:'#E7C468', link:'https://www.marieclaire.com/fashion/pantone-new-york-fashion-week-fall-2026-fashion-color-trends/', images:'https://placehold.co/500x640/E7C468/3a332c?text=Acacia', notes:'Softer alternative to butter yellow — maybe the Frida shirt in this?', createdAt: Date.now()-86400000*3},
     {id:'demo_insp7', title:'Washed linen texture everywhere', category:'Silhouette / Design', season:'Summer', colorHex:'', link:'https://www.sewdaily.com/free/sewing-into-2026-a-personal-look-at-color-craft-and-what-im-excited-to-sew/', images:'https://placehold.co/500x700/D8CBB8/3a332c?text=Washed+Linen', notes:"Etsy's 2026 Texture of the Year — want more of this in the stash.", createdAt: Date.now()-86400000*1},
   ];
-  return { goals, projects, fabrics, patterns, inspiration };
+  const styleArchetypes = [
+    {id:'demo_style1', name:'Muted Cottagecore Romantic', keywords:'soft, flowy, vintage-inspired, floral, gathered details', colorHex:'#C7A794', images:'https://placehold.co/500x680/C7A794/3a332c?text=Cottagecore+Romantic', description:'Bishop sleeves, gathered waists, ditzy florals in muted earth tones. The through-line for the Adino Top and Fiore Wrap Dress.'},
+    {id:'demo_style2', name:'Tailored Minimalist', keywords:'clean lines, structured, neutral, quality fabric, no fuss', colorHex:'#2E6E68', images:'https://placehold.co/500x680/2E6E68/ffffff?text=Tailored+Minimalist', description:'Sharp trousers, welt pockets, one great color instead of a print. Where the Blackwood Cardigan and wide-leg trousers live.'},
+  ];
+  return { goals, projects, fabrics, patterns, inspiration, styleArchetypes };
 }
 function loadDemoData(){
-  if(DATA.goals.length || DATA.projects.length || DATA.fabrics.length || DATA.patterns.length || DATA.inspiration.length){
+  if(DATA.goals.length || DATA.projects.length || DATA.fabrics.length || DATA.patterns.length || DATA.inspiration.length || DATA.styleArchetypes.length){
     if(!confirm('This will replace your current data with sample demo data. Continue?')) return;
   }
   DATA = demoData();
@@ -802,6 +818,7 @@ const TABS = [
   {id:'moodboard', label:'Mood Board'},
   {id:'dashboard', label:'Dashboard'},
   {id:'inspiration', label:'Inspiration'},
+  {id:'style', label:'Style Archetypes'},
   {id:'plan', label:'Wardrobe Plan'},
   {id:'projects', label:'Projects'},
   {id:'materials', label:'Materials'},
@@ -889,6 +906,7 @@ async function handleImageUpload(key, fileList){
 
 const MOOD_CATEGORIES = [
   {key:'inspiration', label:'Inspiration', color:'#8C3A44'},
+  {key:'style', label:'Style Archetypes', color:'#7B5EA7'},
   {key:'projects', label:'Projects', color:'#C6318D'},
   {key:'materials', label:'Materials', color:'#E7C468'},
   {key:'patterns', label:'Patterns', color:'#4C82A8'},
@@ -926,6 +944,11 @@ function buildMoodPool(){
     if(cat.key==='inspiration'){
       DATA.inspiration.forEach(i=>{
         imageList(i.images).forEach(img=> addTile(img, i.title, cat, i.link));
+      });
+    }
+    if(cat.key==='style'){
+      DATA.styleArchetypes.forEach(s=>{
+        imageList(s.images).forEach(img=> addTile(img, s.name, cat, ''));
       });
     }
     if(cat.key==='projects'){
@@ -1110,6 +1133,33 @@ function renderInspiration(){
         <button class="btn small" onclick="startProjectFrom('${escJs(i.title+' project')}', '${escJs(i.notes||'')}', '${escJs(i.season||'')}', '${i.colorHex||''}')">+ Start project</button>
         <button class="btn secondary small" onclick="openModal('inspiration','${i.id}')">Edit</button>
         <button class="btn danger small" onclick="deleteItem('inspiration','${i.id}')">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+/* ---------- Render: Style Archetypes ---------- */
+function renderStyleArchetypes(){
+  const board = document.getElementById('styleBoard');
+  if(!board) return;
+  const items = DATA.styleArchetypes.slice().sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
+  if(!items.length){
+    board.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="icon">🎀</div>No archetypes yet. Add the styles that define what "you" looks like — with keywords and a few reference photos.</div>`;
+    return;
+  }
+  board.innerHTML = items.map(s=>`
+    <div class="palette-card">
+      <div class="swatch-row">
+        ${s.colorHex ? `<div class="swatch" style="background:${s.colorHex};"></div>` : ''}
+        <div style="flex:1;">
+          <div class="name">${esc(s.name)}</div>
+          ${s.keywords ? `<div class="hex">${esc(s.keywords)}</div>` : ''}
+        </div>
+      </div>
+      ${s.description ? `<div class="desc">${esc(s.description)}</div>` : ''}
+      ${thumbStrip(s.images)}
+      <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="btn secondary small" onclick="openModal('styleArchetype','${s.id}')">Edit</button>
+        <button class="btn danger small" onclick="deleteItem('styleArchetypes','${s.id}')">Delete</button>
       </div>
     </div>`).join('');
 }
@@ -1337,6 +1387,7 @@ function renderAll(){
   renderDashboard();
   renderInspirationTrends();
   renderInspiration();
+  renderStyleArchetypes();
   renderPlan();
   renderProjects();
   renderMaterials();
@@ -1432,6 +1483,17 @@ const FORMS = {
       {key:'notes', label:'Notes', type:'textarea'},
     ],
     store:'inspiration'
+  },
+  styleArchetype: {
+    title:'Style archetype',
+    fields:[
+      {key:'name', label:'Archetype name (e.g. "Cottagecore Romantic")', type:'text'},
+      {key:'keywords', label:'Key words (comma-separated)', type:'text'},
+      {key:'colorHex', label:'Color swatch (optional)', type:'color'},
+      {key:'images', label:'Photos (upload from your computer, or paste links — one per line)', type:'images'},
+      {key:'description', label:'What defines this style for you', type:'textarea'},
+    ],
+    store:'styleArchetypes'
   }
 };
 
