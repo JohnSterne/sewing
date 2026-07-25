@@ -429,23 +429,6 @@
   <!-- INSPIRATION -->
   <section class="tab" id="tab-inspiration">
     <div class="card">
-      <h2>2026 Trend Guide</h2>
-      <p style="color:var(--muted); font-size:13px; margin-top:-6px;">Curated from current runway &amp; industry trend reports — a starting point for this season's makes.</p>
-
-      <h3 style="margin-top:20px;">Color palettes</h3>
-      <div class="grid cols-3" id="trendColors"></div>
-
-      <h3 style="margin-top:24px;">Prints &amp; patterns</h3>
-      <div id="trendPrints"></div>
-
-      <h3 style="margin-top:24px;">Silhouettes &amp; design details</h3>
-      <div id="trendSilhouettes"></div>
-
-      <h3 style="margin-top:24px;">Sources</h3>
-      <ul id="trendSourcesList" style="font-size:12.5px; color:var(--sage-dark); line-height:1.8; padding-left:18px; margin:0;"></ul>
-    </div>
-
-    <div class="card">
       <div class="toolbar" style="justify-content:space-between;">
         <h2 style="margin:0;">My inspiration board</h2>
         <button class="btn" onclick="openModal('inspiration')">+ Add inspiration</button>
@@ -464,6 +447,23 @@
         </select>
       </div>
       <div class="grid cols-3" id="inspBoard"></div>
+    </div>
+
+    <div class="card">
+      <h2>2026 Trend Guide</h2>
+      <p style="color:var(--muted); font-size:13px; margin-top:-6px;">Curated from current runway &amp; industry trend reports — a starting point for this season's makes.</p>
+
+      <h3 style="margin-top:20px;">Color palettes</h3>
+      <div class="grid cols-3" id="trendColors"></div>
+
+      <h3 style="margin-top:24px;">Prints &amp; patterns</h3>
+      <div id="trendPrints"></div>
+
+      <h3 style="margin-top:24px;">Silhouettes &amp; design details</h3>
+      <div id="trendSilhouettes"></div>
+
+      <h3 style="margin-top:24px;">Sources</h3>
+      <ul id="trendSourcesList" style="font-size:12.5px; color:var(--sage-dark); line-height:1.8; padding-left:18px; margin:0;"></ul>
     </div>
   </section>
 
@@ -525,13 +525,13 @@
         <button class="btn" onclick="openModal('pattern')">+ Add pattern</button>
       </div>
       <table id="patternOwnedTable"><thead><tr>
-        <th>Name</th><th>Brand</th><th>Format</th><th>Size range</th><th>Linked project</th><th></th>
+        <th>Photo</th><th>Name</th><th>Brand</th><th>Format</th><th>Size range</th><th>Linked project</th><th></th>
       </tr></thead><tbody></tbody></table>
     </div>
     <div class="card">
       <h2>Wishlist (not yet owned)</h2>
       <table id="patternWishlistTable"><thead><tr>
-        <th>Name</th><th>Brand</th><th>Format</th><th>Size range</th><th>Linked project</th><th></th>
+        <th>Photo</th><th>Name</th><th>Brand</th><th>Format</th><th>Size range</th><th>Linked project</th><th></th>
       </tr></thead><tbody></tbody></table>
     </div>
   </section>
@@ -996,15 +996,25 @@ function buildMoodPool(){
     }
     if(cat.key==='materials'){
       DATA.fabrics.forEach(f=>{
-        const p = curatedPhotoFor(fabricTypeToCategory(f.type));
-        pool.push({img:p.img, title:f.name, cat, link:''});
+        const real = imageList(f.images);
+        if(real.length){
+          real.forEach(img=> pool.push({img, title:f.name, cat, link:''}));
+        } else {
+          const p = curatedPhotoFor(fabricTypeToCategory(f.type));
+          pool.push({img:p.img, title:f.name, cat, link:''});
+        }
       });
     }
     if(cat.key==='patterns'){
       DATA.patterns.forEach(pt=>{
-        const match = CURATED_GARMENT_PHOTOS.find(c=> pt.name && pt.name.toLowerCase().includes(c.garment.split(' ')[0].toLowerCase()));
-        const p = match || CURATED_GARMENT_PHOTOS[Math.floor(Math.random()*CURATED_GARMENT_PHOTOS.length)];
-        pool.push({img:p.img, title:`${pt.name} — ${pt.brand||''}`, cat, link:''});
+        const real = imageList(pt.images);
+        if(real.length){
+          real.forEach(img=> pool.push({img, title:`${pt.name} — ${pt.brand||''}`, cat, link:''}));
+        } else {
+          const match = CURATED_GARMENT_PHOTOS.find(c=> pt.name && pt.name.toLowerCase().includes(c.garment.split(' ')[0].toLowerCase()));
+          const p = match || CURATED_GARMENT_PHOTOS[Math.floor(Math.random()*CURATED_GARMENT_PHOTOS.length)];
+          pool.push({img:p.img, title:`${pt.name} — ${pt.brand||''}`, cat, link:''});
+        }
       });
     }
   });
@@ -1296,6 +1306,7 @@ function renderPatterns(){
   const wishlist = DATA.patterns.filter(p=>p.owned==='No');
   const rowHtml = p => `
     <tr>
+      <td>${imageList(p.images).length ? `<img src="${esc(imageList(p.images)[0])}" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:6px; border:1px solid var(--line);" onerror="this.style.display='none'">` : ''}</td>
       <td>${esc(p.name)}</td>
       <td>${esc(p.brand||'')}</td>
       <td>${esc(p.format||'')}</td>
@@ -1303,8 +1314,8 @@ function renderPatterns(){
       <td>${esc(projectName(p.projectId))}</td>
       <td><button class="icon-btn" onclick="openModal('pattern','${p.id}')">Edit</button> <button class="icon-btn" onclick="deleteItem('patterns','${p.id}')">Delete</button></td>
     </tr>`;
-  document.querySelector('#patternOwnedTable tbody').innerHTML = owned.length ? owned.map(rowHtml).join('') : `<tr><td colspan="6"><div class="empty">No owned patterns logged yet.</div></td></tr>`;
-  document.querySelector('#patternWishlistTable tbody').innerHTML = wishlist.length ? wishlist.map(rowHtml).join('') : `<tr><td colspan="6"><div class="empty">Nothing on the wishlist.</div></td></tr>`;
+  document.querySelector('#patternOwnedTable tbody').innerHTML = owned.length ? owned.map(rowHtml).join('') : `<tr><td colspan="7"><div class="empty">No owned patterns logged yet.</div></td></tr>`;
+  document.querySelector('#patternWishlistTable tbody').innerHTML = wishlist.length ? wishlist.map(rowHtml).join('') : `<tr><td colspan="7"><div class="empty">Nothing on the wishlist.</div></td></tr>`;
 }
 
 /* ---------- Render: Queue ---------- */
@@ -1478,6 +1489,7 @@ const FORMS = {
       {key:'sizeRange', label:'Size range', type:'text'},
       {key:'owned', label:'Owned?', type:'select', options:['Yes','No']},
       {key:'projectId', label:'Linked project', type:'select', optionsFn:()=>DATA.projects.map(p=>({value:p.id,label:p.name})), allowEmpty:true},
+      {key:'images', label:'Photos (upload from your computer, or paste links — one per line)', type:'images'},
       {key:'notes', label:'Notes', type:'textarea'},
     ],
     store:'patterns'
