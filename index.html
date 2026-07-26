@@ -580,6 +580,20 @@
     <div class="pin-masonry" id="pinboardGrid"></div>
   </section>
 
+  <!-- RECOVERED PHOTOS -->
+  <section class="tab" id="tab-recovered">
+    <div class="toolbar" style="justify-content:space-between; margin-bottom:4px;">
+      <h2 style="margin:0;">Recovered Photos</h2>
+      <button class="btn secondary small" onclick="loadRecoveredPhotos()">Refresh</button>
+    </div>
+    <p style="color:var(--muted); font-size:13px; margin-top:-6px;">
+      Every photo you've ever uploaded, that isn't currently attached to a fabric or pattern. Click a photo to view it full-size,
+      pick something from the dropdown and hit Attach, or quick-create a new fabric/pattern from it.
+    </p>
+    <p id="recoveredCount" style="font-size:13px; font-weight:600; margin:6px 0 12px;"></p>
+    <div id="recoveredGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:14px;"></div>
+  </section>
+
 </main>
 
 <footer>
@@ -704,9 +718,12 @@ async function onAuthed(session){
     if(row && row.data){
       DATA = Object.assign(defaultData(), row.data);
     }else{
-      // First time this account has logged in — seed demo data and create its row.
-      DATA = demoData();
-      await sb.from('app_data').upsert({ user_id: currentUserId, data: DATA, updated_at: new Date().toISOString() });
+      // No row found for this account yet. NEVER auto-write here — a missing row
+      // can also mean a transient read glitch (e.g. auth/session race), and blindly
+      // upserting demo data over what might actually exist would destroy real data.
+      // Just populate an empty in-memory state; nothing touches the DB until the
+      // user actually makes an edit (or explicitly clicks "Load Demo Data").
+      DATA = defaultData();
     }
   }catch(e){
     console.error('Could not reach Supabase, falling back to local cache:', e.message);
@@ -840,6 +857,7 @@ const TABS = [
   {id:'patterns', label:'Patterns'},
   {id:'queue', label:'Queue'},
   {id:'pinboard', label:'Pinboard'},
+  {id:'recovered', label:'Recovered Photos'},
 ];
 function buildNav(){
   const nav = document.getElementById('tabNav');
@@ -851,6 +869,7 @@ function showTab(id){
   document.querySelectorAll('#tabNav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===id));
   renderAll();
   if(id==='moodboard') initMoodboard();
+  if(id==='recovered') loadRecoveredPhotos();
 }
 
 /* ---------- Helpers ---------- */
@@ -1423,6 +1442,7 @@ function renderAll(){
   renderPatterns();
   renderQueue();
   renderPinboard();
+  renderRecoveredPhotos();
 }
 
 function esc(s){
@@ -1607,6 +1627,109 @@ function deleteItem(store, id){
   DATA[store] = DATA[store].filter(x=>x.id!==id);
   save();
   renderAll();
+}
+
+/* ---------- Recovered Photos ---------- */
+// Every photo ever uploaded lives permanently in Supabase Storage, independent of the
+// app_data JSON row. This pane lists any storage photo that isn't currently referenced by
+// any fabric/pattern/project/inspiration/style-archetype "images" field, so photos orphaned
+// by a lost or reset app_data row (like the data-loss incident on 2026-07-26) can be manually
+// reattached instead of being lost for good.
+let recoveredRawFiles = null; // null = not loaded yet; [] = loaded, none found
+let recoveredLoading = false;
+
+function getAllReferencedImageUrls(){
+  const set = new Set();
+  ['projects','fabrics','patterns','inspiration','styleArchetypes'].forEach(store=>{
+    (DATA[store]||[]).forEach(item=>{ imageList(item.images).forEach(u=>set.add(u)); });
+  });
+  return set;
+}
+
+async function loadRecoveredPhotos(){
+  if(!currentUserId){ recoveredRawFiles = []; renderRecoveredPhotos(); return; }
+  if(recoveredLoading) return;
+  recoveredLoading = true;
+  const el = document.getElementById('recoveredGrid');
+  if(el && recoveredRawFiles===null) el.innerHTML = `<p style="color:var(--muted);">Loading your photos…</p>`;
+  try{
+    const { data, error } = await sb.storage.from('images').list(currentUserId, { limit: 1000, sortBy: { column:'created_at', order:'desc' } });
+    if(error) throw error;
+    recoveredRawFiles = (data||[])
+      .filter(f=>f.name && !f.name.startsWith('.'))
+      .map(f=>{
+        const path = `${currentUserId}/${f.name}`;
+        const { data: pub } = sb.storage.from('images').getPublicUrl(path);
+        return { name: f.name, url: pub.publicUrl, created_at: f.created_at };
+      });
+  }catch(e){
+    console.error('Could not load recovered photos:', e.message);
+    recoveredRawFiles = [];
+  }
+  recoveredLoading = false;
+  renderRecoveredPhotos();
+}
+
+function renderRecoveredPhotos(){
+  const el = document.getElementById('recoveredGrid');
+  const countEl = document.getElementById('recoveredCount');
+  if(!el || !countEl) return; // tab not in DOM yet
+  if(!currentUserId){
+    countEl.textContent = '';
+    el.innerHTML = `<p style="color:var(--muted);">Log in to see your recovered photos.</p>`;
+    return;
+  }
+  if(recoveredRawFiles===null){
+    countEl.textContent = '';
+    return; // loadRecoveredPhotos() will re-render once it finishes
+  }
+  const referenced = getAllReferencedImageUrls();
+  const orphaned = recoveredRawFiles.filter(f=>!referenced.has(f.url));
+  countEl.textContent = orphaned.length
+    ? `${orphaned.length} photo${orphaned.length===1?'':'s'} not currently linked to a fabric or pattern`
+    : (recoveredRawFiles.length ? 'All your photos are linked — nothing to recover.' : 'No photos found yet.');
+  if(!orphaned.length){ el.innerHTML=''; return; }
+  const targets = [
+    ...DATA.fabrics.map(f=>({value:`fabrics:${f.id}`, label:`Fabric: ${f.name||'(untitled)'}`})),
+    ...DATA.patterns.map(p=>({value:`patterns:${p.id}`, label:`Pattern: ${p.name||'(untitled)'}`})),
+  ];
+  el.innerHTML = orphaned.map((f,i)=>`
+    <div class="card" style="padding:10px;">
+      <img src="${esc(f.url)}" style="width:100%; height:160px; object-fit:cover; border-radius:8px; cursor:pointer; display:block;" onclick="window.open('${esc(f.url)}','_blank')" title="Click to view full-size">
+      <select id="recTarget_${i}" style="width:100%; font-size:12px; margin:8px 0 6px;">
+        <option value="">Attach to existing…</option>
+        ${targets.map(t=>`<option value="${esc(t.value)}">${esc(t.label)}</option>`).join('')}
+      </select>
+      <div style="display:flex; gap:4px; flex-wrap:wrap;">
+        <button class="btn secondary small" style="flex:1;" onclick="attachRecoveredPhotoFromSelect('${escJs(f.url)}','recTarget_${i}')">Attach</button>
+        <button class="btn secondary small" onclick="quickCreateFromRecovered('fabric','${escJs(f.url)}')">+ Fabric</button>
+        <button class="btn secondary small" onclick="quickCreateFromRecovered('pattern','${escJs(f.url)}')">+ Pattern</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function attachRecoveredPhotoFromSelect(url, selectId){
+  const sel = document.getElementById(selectId);
+  const val = sel ? sel.value : '';
+  if(!val){ alert('Pick a fabric or pattern to attach this photo to first.'); return; }
+  attachRecoveredPhoto(url, val);
+}
+
+function attachRecoveredPhoto(url, target){
+  const [store, id] = target.split(':');
+  if(!store || !id || !DATA[store]) return;
+  const item = DATA[store].find(x=>x.id===id);
+  if(!item) return;
+  const imgs = imageList(item.images);
+  if(!imgs.includes(url)) imgs.push(url);
+  item.images = imgs.join('\n');
+  save();
+  renderAll();
+}
+
+function quickCreateFromRecovered(type, url){
+  openModal(type, null, {images: url});
 }
 
 // Quick one-click way to finish a project from the Queue or Projects board, without opening
