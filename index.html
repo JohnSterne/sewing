@@ -600,7 +600,6 @@
   Data is synced to your account and available on any device you log in on.
   <button class="btn secondary small" onclick="exportData()">Export backup</button>
   <label class="btn secondary small" style="cursor:pointer;">Import / merge JSON<input type="file" accept=".json" onchange="importData(event)" style="display:none;"></label>
-  <button class="btn secondary small" onclick="loadDemoData()">Load sample demo data</button>
 </footer>
 
 <div class="modal-overlay" id="modalOverlay">
@@ -726,8 +725,13 @@ async function onAuthed(session){
       DATA = defaultData();
     }
   }catch(e){
+    // NEVER fall back to fabricated/demo content here. A read failure can be a transient
+    // network or session glitch, not proof the account is empty -- if it silently seeded
+    // demoData() into memory, the user's very next edit would upsert that fake content
+    // straight over their real cloud row via save(). Local cache (their own last-synced
+    // copy) is safe to use; an empty shell is the only other safe option.
     console.error('Could not reach Supabase, falling back to local cache:', e.message);
-    DATA = loadLocalCache() || demoData();
+    DATA = loadLocalCache() || defaultData();
   }
   cacheLocally();
   buildNav();
@@ -738,63 +742,10 @@ sb.auth.onAuthStateChange((event, session)=>{
   else{ showAuthScreen(); }
 });
 
-/* ---------- Demo data (realistic sample content for trying the app out) ---------- */
-function demoData(){
-  const patterns = [
-    {id:'demo_pat1', name:'Fiore Wrap Dress', brand:'Closet Core Patterns', format:'PDF', sizeRange:'0-32', owned:'Yes', notes:'True wrap with sash tie, bust darts.'},
-    {id:'demo_pat2', name:'Blackwood Cardigan', brand:"Helen's Closet", format:'PDF', sizeRange:'XS-5XL', owned:'Yes', notes:'Cropped or long, welt pockets.'},
-    {id:'demo_pat3', name:'Indigo Dress', brand:'Tilly and the Buttons', format:'PDF', sizeRange:'6-34 (UK)', owned:'Yes', notes:'Beginner-friendly pull-on shape, good for a slip-dress remix.'},
-    {id:'demo_pat4', name:'Adino Top', brand:'Seamwork', format:'PDF', sizeRange:'XS-3XL', owned:'Yes', notes:'Button-front blouse with collar variations.'},
-    {id:'demo_pat5', name:'V1795 Wide-Leg Trousers', brand:'Vogue Patterns', format:'Paper', sizeRange:'6-22', owned:'Yes', notes:'High-waisted, side-zip, needs 3in elastic for waistband ease.'},
-    {id:'demo_pat6', name:'Frida Shirt', brand:'Tilly and the Buttons', format:'PDF', sizeRange:'6-34 (UK)', owned:'No', notes:'On the wishlist — want it for the classic-shirt workshop.'},
-    {id:'demo_pat7', name:'Del Jumpsuit', brand:'Seamwork', format:'PDF', sizeRange:'XS-3XL', owned:'No', notes:'Would love this in the Neptune Green ponte once the cardigan is done.'},
-  ];
-  const fabrics = [
-    {id:'demo_fab1', name:'Muted Clay Washed Linen', type:'Washed linen', weight:'Midweight (200–400 gsm)', stretch:'None (Woven, no stretch)', transparency:'Opaque', color:'Muted Clay', colorHex:'#C7A794', yardage:'2.75', unit:'yd', status:'Allocated', source:'Blackbird Fabrics', cost:'62', projectId:'demo_proj1'},
-    {id:'demo_fab2', name:'Neptune Green Ponte Knit', type:'Ponte knit', weight:'Midweight (200–400 gsm)', stretch:'4-Way Stretch', transparency:'Opaque', color:'Neptune Green', colorHex:'#2E6E68', yardage:'3.5', unit:'yd', status:'Allocated', source:'Stonemountain & Daughter', cost:'48', projectId:'demo_proj2'},
-    {id:'demo_fab3', name:'Festival Fuchsia Silk Charmeuse', type:'Silk charmeuse', weight:'Lightweight (up to 200 gsm)', stretch:'None (Woven, no stretch)', transparency:'Semi-Sheer', color:'Festival Fuchsia', colorHex:'#C6318D', yardage:'1.5', unit:'yd', status:'Stash', source:'Mood Fabrics', cost:'54', projectId:''},
-    {id:'demo_fab4', name:'Burnt Olive Brushed Twill', type:'Brushed cotton twill', weight:'Midweight (200–400 gsm)', stretch:'None (Woven, no stretch)', transparency:'Opaque', color:'Burnt Olive', colorHex:'#55552E', yardage:'3', unit:'yd', status:'Stash', source:'Fabricville', cost:'36', projectId:''},
-    {id:'demo_fab5', name:'All Aboard Blue Gingham Poplin', type:'Cotton poplin', weight:'Lightweight (up to 200 gsm)', stretch:'None (Woven, no stretch)', transparency:'Opaque', color:'All Aboard Blue', colorHex:'#4C82A8', yardage:'2', unit:'yd', status:'Used', source:'Local quilt shop', cost:'22', projectId:'demo_proj4'},
-    {id:'demo_fab6', name:'Acacia Ribbed Sweater Knit', type:'Ribbed sweater knit', weight:'Midweight (200–400 gsm)', stretch:'2-Way Stretch', transparency:'Opaque', color:'Acacia', colorHex:'#E7C468', yardage:'2.25', unit:'yd', status:'Allocated', source:'Girl Charlee', cost:'40', projectId:'demo_proj6'},
-  ];
-  const projects = [
-    {id:'demo_proj1', name:'Fiore Wrap Dress in Muted Clay', season:'Fall', category:'Dresses', status:'Sewing', quantity:'1', yardageNeeded:'3', patternId:'demo_pat1', fabricId:'demo_fab1', targetDate:'2026-08-15', images:'https://placehold.co/500x680/C7A794/3a332c?text=Fiore+Wrap+Dress', notes:'Lengthening the sash and adding a lining for the skirt.'},
-    {id:'demo_proj2', name:'Blackwood Cardigan in Neptune Green', season:'Fall', category:'Outerwear', status:'Cutting', quantity:'1', yardageNeeded:'3.5', patternId:'demo_pat2', fabricId:'demo_fab2', targetDate:'2026-09-05', images:'https://placehold.co/500x640/2E6E68/ffffff?text=Blackwood+Cardigan', notes:'Cropped view B, welt pockets.'},
-    {id:'demo_proj3', name:'Indigo Slip Dress Remix', season:'Fall', category:'Dresses', status:'Planned', quantity:'1', yardageNeeded:'2.25', patternId:'demo_pat3', fabricId:'demo_fab3', targetDate:'2026-09-20', priority:'', notes:'Shortening to midi length, bias-cut in fuchsia silk — need a bit more than what is in stash.'},
-    {id:'demo_proj4', name:'Adino Gingham Top', season:'Summer', category:'Tops', status:'Done', quantity:'1', yardageNeeded:'2', patternId:'demo_pat4', fabricId:'demo_fab5', targetDate:'', priority:'', notes:'Finished in June — collar view A, mother-of-pearl buttons.'},
-    {id:'demo_proj5', name:'Wide-Leg Trousers in Burnt Olive', season:'Winter', category:'Bottoms', status:'Idea', quantity:'2', yardageNeeded:'2.5', patternId:'demo_pat5', fabricId:'demo_fab4', targetDate:'', priority:'', notes:'Want two pairs — one for me, one as a gift. Add front pleats and a higher rise.'},
-    {id:'demo_proj6', name:'Acacia Ribbed Pullover', season:'Fall', category:'Tops', status:'On Hold', quantity:'1', yardageNeeded:'2.25', patternId:'', fabricId:'demo_fab6', targetDate:'2026-07-10', priority:'', notes:'Paused to finish the Fiore dress first — still need a pattern.'},
-  ];
-  const goals = [
-    {id:'demo_goal1', season:'Fall', category:'Dresses', needed:'3', notes:'One wrap, one slip, one knit shift.'},
-    {id:'demo_goal2', season:'Fall', category:'Outerwear', needed:'2', notes:'A cardigan and a lightweight jacket.'},
-    {id:'demo_goal3', season:'Fall', category:'Tops', needed:'4', notes:'Mix of knit pullovers and woven blouses.'},
-    {id:'demo_goal4', season:'Summer', category:'Tops', needed:'3', notes:'Breathable cottons and linens.'},
-    {id:'demo_goal5', season:'Winter', category:'Bottoms', needed:'2', notes:'Warm trousers for cold-weather layering.'},
-  ];
-  const inspiration = [
-    {id:'demo_insp1', title:'Muted Clay everywhere at Ulla Johnson', category:'Color Palette', season:'Fall', colorHex:'#C7A794', link:'https://www.marieclaire.com/fashion/pantone-new-york-fashion-week-fall-2026-fashion-color-trends/', images:'https://placehold.co/500x700/C7A794/3a332c?text=Muted+Clay', notes:'Want to try this as a neutral instead of my usual black/navy basics.', createdAt: Date.now()-86400000*6},
-    {id:'demo_insp2', title:'Visible-seam patchwork skirt', category:'Print / Pattern', season:'Fall', colorHex:'', link:'https://www.sewdaily.com/free/sewing-into-2026-a-personal-look-at-color-craft-and-what-im-excited-to-sew/', images:'https://placehold.co/500x620/6B2C28/ffffff?text=Patchwork+Skirt', notes:'Use scraps from the fuchsia silk + olive twill, topstitch seams in a contrast thread.', createdAt: Date.now()-86400000*4},
-    {id:'demo_insp3', title:'Statement bishop sleeve blouse', category:'Silhouette / Design', season:'Fall', colorHex:'', link:'', images:'https://placehold.co/500x760/8C3A44/ffffff?text=Bishop+Sleeve', notes:'Draft a dramatic gathered sleeve onto the Adino Top bodice.', createdAt: Date.now()-86400000*2},
-    {id:'demo_insp4', title:'Gingham + ditzy floral mix for summer tops', category:'Print / Pattern', season:'Summer', colorHex:'#4C82A8', link:'https://sparrowrefashion.com/2026/02/27/10-sewing-trends-taking-over-2026-and-why-im-actually-excited-about-them/', images:'https://placehold.co/500x600/4C82A8/ffffff?text=Gingham+%2B+Ditzy+Floral', notes:'Pair a gingham bodice with a ditzy floral yoke for contrast.', createdAt: Date.now()-86400000},
-    {id:'demo_insp5', title:'Neptune Green as a new neutral', category:'Color Palette', season:'Fall', colorHex:'#2E6E68', link:'https://www.marieclaire.com/fashion/pantone-new-york-fashion-week-fall-2026-fashion-color-trends/', images:'https://placehold.co/500x680/2E6E68/ffffff?text=Neptune+Green', notes:'Considering this for the Blackwood cardigan instead of navy.', createdAt: Date.now()-86400000*5},
-    {id:'demo_insp6', title:'Acacia yellow cardigans', category:'Color Palette', season:'Fall', colorHex:'#E7C468', link:'https://www.marieclaire.com/fashion/pantone-new-york-fashion-week-fall-2026-fashion-color-trends/', images:'https://placehold.co/500x640/E7C468/3a332c?text=Acacia', notes:'Softer alternative to butter yellow — maybe the Frida shirt in this?', createdAt: Date.now()-86400000*3},
-    {id:'demo_insp7', title:'Washed linen texture everywhere', category:'Silhouette / Design', season:'Summer', colorHex:'', link:'https://www.sewdaily.com/free/sewing-into-2026-a-personal-look-at-color-craft-and-what-im-excited-to-sew/', images:'https://placehold.co/500x700/D8CBB8/3a332c?text=Washed+Linen', notes:"Etsy's 2026 Texture of the Year — want more of this in the stash.", createdAt: Date.now()-86400000*1},
-  ];
-  const styleArchetypes = [
-    {id:'demo_style1', name:'Muted Cottagecore Romantic', keywords:'soft, flowy, vintage-inspired, floral, gathered details', colorHex:'#C7A794', images:'https://placehold.co/500x680/C7A794/3a332c?text=Cottagecore+Romantic', description:'Bishop sleeves, gathered waists, ditzy florals in muted earth tones. The through-line for the Adino Top and Fiore Wrap Dress.'},
-    {id:'demo_style2', name:'Tailored Minimalist', keywords:'clean lines, structured, neutral, quality fabric, no fuss', colorHex:'#2E6E68', images:'https://placehold.co/500x680/2E6E68/ffffff?text=Tailored+Minimalist', description:'Sharp trousers, welt pockets, one great color instead of a print. Where the Blackwood Cardigan and wide-leg trousers live.'},
-  ];
-  return { goals, projects, fabrics, patterns, inspiration, styleArchetypes };
-}
-function loadDemoData(){
-  if(DATA.goals.length || DATA.projects.length || DATA.fabrics.length || DATA.patterns.length || DATA.inspiration.length || DATA.styleArchetypes.length){
-    if(!confirm('This will replace your current data with sample demo data. Continue?')) return;
-  }
-  DATA = demoData();
-  save();
-  renderAll();
-}
+/* Demo/sample data generator and its manual "Load sample demo data" button have been
+   removed entirely (2026-07-26, after the data-loss incident). demoData() and
+   loadDemoData() no longer exist anywhere in this file -- there is now no code path,
+   automatic or manual, that can ever write fabricated content into a user's account. */
 
 /* ---------- Trend content (sourced from fashion & sewing blogs, July 2026) ---------- */
 const TREND_COLORS = [
